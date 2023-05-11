@@ -19,8 +19,7 @@ seed_everything(42, workers=True)
 
 # TODO (fabawi): WIP
 class LoRATrain(L.LightningModule):
-    def __init__(self, hidden_dim, lr, temperature, weight_decay, max_epochs=500,
-                 lora_rank=4, lora_checkpoint_dir="./.checkpoints/lora"):
+    def __init__(self, lora_rank=4, lora_checkpoint_dir="./.checkpoints/lora"):
         super().__init__()
         self.save_hyperparameters()
         assert self.hparams.temperature > 0.0, "The temperature must be a positive float!"
@@ -82,7 +81,7 @@ class LoRATrain(L.LightningModule):
 
 
 if __name__ == "__main__":
-    model = LoRATrain
+    model = LoRATrain()
     trainer = Trainer(accelerator="cpu")
     trainer.fit(model)
 
