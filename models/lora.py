@@ -1,8 +1,11 @@
 # Sheng Wang at Feb 22 2023
-# Original version of LoRA-ViT: https://github.com/JamesQFreeman/LoRA-ViT/blob/main/lora.py
+# Based on LoRA-ViT: https://github.com/JamesQFreeman/LoRA-ViT/blob/main/lora.py
 # Modified by Fares Abawi (@fabawi).
+# We use this stripped-down version of LoRA for rapid exploration but will be replaced with loralib soon
+# TODO (fabawi): Implement using loralib -> https://github.com/microsoft/LoRA/blob/main/loralib/layers.py
 
 
+import os
 import math
 from typing import Optional, List, Dict
 
@@ -18,12 +21,26 @@ from torch.nn.parameter import Parameter
 from transformer import SimpleTransformer
 
 
-def apply_lora_modality_trunks(modality_trunks: Dict[SimpleTransformer], rank: int,
-                               lora_layer_idxs: Optional[List[int]] = None, modality_names: List[str] = None):
+def apply_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer], rank: int,
+                               lora_layer_idxs: Optional[Dict[str, int]] = None, modality_names: List[str] = None):
     if modality_names is None:
         modality_names = list(modality_trunks.keys())
-    return {modality_name: LoRA_SimpleTransformer(modality_trunk, rank, lora_layer_idxs) for
+    if lora_layer_idxs is None:
+        lora_layer_idxs = {}
+    return {modality_name: LoRA_SimpleTransformer(modality_trunk, rank, lora_layer_idxs.get(modality_name, None)) for
             modality_name, modality_trunk in modality_trunks.items() if modality_name in modality_names}
+
+
+def save_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer],
+                              output_dir: str = "./.checkpoints/lora", postfix="_last", extension="safetensors"):
+    for modality_name, modality_trunk in modality_trunks.items():
+        modality_trunk.save_lora_parameters(os.path.join(output_dir, f"{modality_name}{postfix}.{extension}"))
+
+
+def load_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer],
+                              output_dir: str = "./.checkpoints/lora", postfix="_last", extension="safetensors"):
+    for modality_name, modality_trunk in modality_trunks.items():
+        modality_trunk.load_lora_parameters(os.path.join(output_dir, f"{modality_name}{postfix}.{extension}"))
 
 
 class _LoRALayer(nn.Module):
@@ -73,7 +90,7 @@ class LoRA_SimpleTransformer(nn.Module):
             param.requires_grad = False
 
         # Here, we do the surgery
-        for t_layer_idx, blk in enumerate(transformer_model.transformer.blocks):
+        for t_layer_idx, blk in enumerate(transformer_model.blocks):
             # If we only want few lora layer instead of all
             if t_layer_idx not in self.lora_layer_idxs:
                 continue
