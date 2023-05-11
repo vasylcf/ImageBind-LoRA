@@ -11,3 +11,4 @@ fvcore
 decord==0.6.0
 safetensors
 lightning==2.0.2
+fastapi==0.95.1

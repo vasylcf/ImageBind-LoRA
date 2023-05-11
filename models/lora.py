@@ -18,7 +18,7 @@ from safetensors.torch import save_file
 from torch import Tensor
 from torch.nn.parameter import Parameter
 
-from transformer import SimpleTransformer
+from models.transformer import SimpleTransformer
 
 
 def apply_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer], rank: int,
@@ -75,7 +75,7 @@ class LoRA_SimpleTransformer(nn.Module):
         super(LoRA_SimpleTransformer, self).__init__()
 
         assert rank > 0
-        base_dim = transformer_model.transformer.blocks[0].attn.in_proj_bias.size()[0]
+        base_dim = transformer_model.blocks[0].attn.in_proj_bias.size()[0]
         dim = base_dim
         if lora_layer_idxs is not None:
             self.lora_layer_idxs = lora_layer_idxs

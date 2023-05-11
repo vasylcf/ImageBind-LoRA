@@ -22,7 +22,6 @@ class LoRATrain(L.LightningModule):
     def __init__(self, lora_rank=4, lora_checkpoint_dir="./.checkpoints/lora"):
         super().__init__()
         self.save_hyperparameters()
-        assert self.hparams.temperature > 0.0, "The temperature must be a positive float!"
 
         # image bind model (load pretrained model)
         self.model = imagebind_model.imagebind_huge(pretrained=True)
