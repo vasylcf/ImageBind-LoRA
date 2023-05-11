@@ -19,7 +19,8 @@ seed_everything(42, workers=True)
 
 # TODO (fabawi): WIP
 class LoRATrain(L.LightningModule):
-    def __init__(self, lora_rank=4, lora_checkpoint_dir="./.checkpoints/lora"):
+    def __init__(self, lr=0.001, weight_decay=0.5, max_epochs=500,  # TODO (fabawi): dummy values. Change soon!
+                 lora_rank=4, lora_checkpoint_dir="./.checkpoints/lora"):
         super().__init__()
         self.save_hyperparameters()
 
@@ -28,7 +29,7 @@ class LoRATrain(L.LightningModule):
         self.model.modality_trunks = lora.apply_lora_modality_trunks(self.model.modality_trunks, rank=lora_rank)
         try:
             # now load LoRA params if found
-            lora.load_lora_modality_trunks(self.model.modality_trunks)
+            lora.load_lora_modality_trunks(self.model.modality_trunks, checkpoint_dir=lora_checkpoint_dir)
         except FileNotFoundError:
             logging.warning("No LoRA checkpoint found. Training LoRA layers from scratch!")
 

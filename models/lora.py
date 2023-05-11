@@ -27,8 +27,8 @@ def apply_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer], ra
         modality_names = list(modality_trunks.keys())
     if lora_layer_idxs is None:
         lora_layer_idxs = {}
-    return {modality_name: LoRA_SimpleTransformer(modality_trunk, rank, lora_layer_idxs.get(modality_name, None)) for
-            modality_name, modality_trunk in modality_trunks.items() if modality_name in modality_names}
+    return nn.ModuleDict({modality_name: LoRA_SimpleTransformer(modality_trunk, rank, lora_layer_idxs.get(modality_name, None)) for
+            modality_name, modality_trunk in modality_trunks.items() if modality_name in modality_names})
 
 
 def save_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer],
