@@ -8,6 +8,7 @@
 import os
 import math
 from typing import Optional, List, Dict
+from types import SimpleNamespace
 
 import torch
 import torch.nn as nn
@@ -22,13 +23,14 @@ from models.transformer import SimpleTransformer
 
 
 def apply_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer], rank: int,
-                               lora_layer_idxs: Optional[Dict[str, int]] = None, modality_names: List[str] = None):
+                               layer_idxs: Optional[Dict[SimpleNamespace, List[int]]] = None,
+                               modality_names: List[SimpleNamespace] = None):
     if modality_names is None:
         modality_names = list(modality_trunks.keys())
-    if lora_layer_idxs is None:
-        lora_layer_idxs = {}
-    return nn.ModuleDict({modality_name: LoRA_SimpleTransformer(modality_trunk, rank, lora_layer_idxs.get(modality_name, None)) for
-            modality_name, modality_trunk in modality_trunks.items() if modality_name in modality_names})
+    if layer_idxs is None:
+        layer_idxs = {}
+    return nn.ModuleDict({modality_name: LoRA_SimpleTransformer(modality_trunk, rank, layer_idxs.get(modality_name, None)) for
+                          modality_name, modality_trunk in modality_trunks.items() if modality_name in modality_names})
 
 
 def save_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer],

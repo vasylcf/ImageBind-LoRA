@@ -23,11 +23,6 @@ from models import lora
 from models.imagebind_model import ModalityType
 import data
 
-# make training deterministic for reproducibility. REMOVE when testing on different runs
-seed_everything(43, workers=True)
-torch.backends.cudnn.determinstic = True
-device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
-
 
 class ContrastiveTransformations:
     def __init__(self, base_transforms, n_views=2):
@@ -82,13 +77,17 @@ class DreamBoothDataset(Dataset):
 # TODO (fabawi): WIP
 class LoRATrain(L.LightningModule):
     def __init__(self, lr=5e-4, weight_decay=1e-4, max_epochs=500,  # TODO (fabawi): dummy values. Change soon!
-                 temperature=0.07, lora_rank=4, lora_checkpoint_dir="./.checkpoints/lora"):
+                 temperature=0.07, lora_rank=4, lora_checkpoint_dir="./.checkpoints/lora",
+                 lora_layer_idxs=None, lora_modality_names=None
+                 ):
         super().__init__()
         self.save_hyperparameters()
 
         # image bind model (load pretrained model)
         self.model = imagebind_model.imagebind_huge(pretrained=True)
-        self.model.modality_trunks = lora.apply_lora_modality_trunks(self.model.modality_trunks, rank=lora_rank)
+        self.model.modality_trunks = lora.apply_lora_modality_trunks(self.model.modality_trunks, rank=lora_rank,
+                                                                     layer_idxs=self.hparams.lora_layer_idxs,
+                                                                     modality_names=self.hparams.lora_modality_names)
         try:
             # now load LoRA params if found
             lora.load_lora_modality_trunks(self.model.modality_trunks, checkpoint_dir=lora_checkpoint_dir)
@@ -155,7 +154,13 @@ class LoRATrain(L.LightningModule):
 
 
 if __name__ == "__main__":
+    # constants
     batch_size = 12
+    seed_everything(43, workers=True)
+    device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+    torch.backends.cudnn.determinstic = True
+    device = torch.device(device_name)
 
     contrast_transforms = transforms.Compose(
         [
@@ -209,7 +214,9 @@ if __name__ == "__main__":
     ## END DEBUG
 
     # train dataset
-    model = LoRATrain()
-    trainer = Trainer(accelerator="gpu", devices=1, max_epochs=500)
+    model = LoRATrain(lora_layer_idxs={ModalityType.VISION: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                                  ModalityType.TEXT: [0, 1, 2, 3, 4, 5, 6, 7, 8]},
+                      lora_modality_names=[ModalityType.VISION, ModalityType.TEXT])
+    trainer = Trainer(accelerator=device_name, devices=1, max_epochs=500)
     trainer.fit(model, train_loader, val_loader)
 
