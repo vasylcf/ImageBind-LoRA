@@ -157,7 +157,7 @@ if __name__ == "__main__":
     # constants
     batch_size = 12
     seed_everything(43, workers=True)
-    device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
+    device_name = "cpu"  # "cuda:0" if torch.cuda.is_available() else "cpu"
 
     torch.backends.cudnn.determinstic = True
     device = torch.device(device_name)
@@ -217,6 +217,6 @@ if __name__ == "__main__":
     model = LoRATrain(lora_layer_idxs={ModalityType.VISION: [0, 1, 2, 3, 4, 5, 6, 7, 8],
                                   ModalityType.TEXT: [0, 1, 2, 3, 4, 5, 6, 7, 8]},
                       lora_modality_names=[ModalityType.VISION, ModalityType.TEXT])
-    trainer = Trainer(accelerator=device_name, devices=1, max_epochs=500)
+    trainer = Trainer(accelerator="gpu" if "cuda" in device_name else "cpu", devices=1, max_epochs=500)
     trainer.fit(model, train_loader, val_loader)
 
