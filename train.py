@@ -157,7 +157,7 @@ if __name__ == "__main__":
     # constants
     batch_size = 12
     seed_everything(43, workers=True)
-    device_name = "cpu"  # "cuda:0" if torch.cuda.is_available() else "cpu"
+    device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     torch.backends.cudnn.determinstic = True
     device = torch.device(device_name)
