@@ -74,7 +74,6 @@ class DreamBoothDataset(Dataset):
         return images, ModalityType.VISION, texts, ModalityType.TEXT
 
 
-# TODO (fabawi): WIP
 class LoRATrain(L.LightningModule):
     def __init__(self, lr=5e-4, weight_decay=1e-4, max_epochs=500,  # TODO (fabawi): dummy values. Change soon!
                  temperature=0.07, lora_rank=4, lora_checkpoint_dir="./.checkpoints/lora",
@@ -151,6 +150,10 @@ class LoRATrain(L.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         self.info_nce_loss(batch, mode="val")
+
+    def on_validation_epoch_end(self):
+        # Save LoRA checkpoint
+        lora.save_lora_modality_trunks(self.model.modality_trunks, checkpoint_dir=self.hparams.lora_checkpoint_dir)
 
 
 if __name__ == "__main__":
