@@ -131,7 +131,7 @@ class LoRATrain(L.LightningModule):
                 dual_nll += nll
                 dual_nll /= 2
             # Logging loss
-            self.log(mode + "_loss", nll)
+            self.log(mode + "_loss", nll, prog_bar=True)
             # Get ranking position of positive example
             comb_sim = torch.cat(
                 [cos_sim[pos_mask][:, None], cos_sim.masked_fill(pos_mask, -9e15)],  # First position positive example
@@ -139,9 +139,9 @@ class LoRATrain(L.LightningModule):
             )
             sim_argsort = comb_sim.argsort(dim=-1, descending=True).argmin(dim=-1)
             # Logging ranking metrics
-            self.log(mode + "_acc_top1", (sim_argsort == 0).float().mean())
-            self.log(mode + "_acc_top5", (sim_argsort < 5).float().mean())
-            self.log(mode + "_acc_mean_pos", 1 + sim_argsort.float().mean())
+            self.log(mode + "_acc_top1", (sim_argsort == 0).float().mean(), prog_bar=True)
+            self.log(mode + "_acc_top5", (sim_argsort < 5).float().mean(), prog_bar=True)
+            self.log(mode + "_acc_mean_pos", 1 + sim_argsort.float().mean(), prog_bar=True)
 
         return nll
 
