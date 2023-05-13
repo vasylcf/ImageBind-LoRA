@@ -7,7 +7,7 @@ text_list=["Dog", "Car", "Something"]
 image_paths=[".assets/dog_image.jpg", ".assets/car_image.jpg", ".assets/bird_image.jpg"]
 audio_paths=[".assets/dog_audio.wav", ".assets/car_audio.wav", ".assets/bird_audio.wav"]
 
-device = "cpu"  # "cuda:0" if torch.cuda.is_available() else "cpu"
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 # Instantiate model
 model = imagebind_model.imagebind_huge(pretrained=True)

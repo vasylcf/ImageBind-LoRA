@@ -50,8 +50,8 @@ class _LoRALayer(nn.Module):
         self.w_a = w_a
         self.w_b = w_b
 
-    def forward(self, x):
-        x = self.w(x) + self.w_b(self.w_a(x))
+    def forward(self, tokens: torch.Tensor, **kwargs):
+        x = self.w(tokens) + self.w_b(self.w_a(tokens))
         return x
 
 
@@ -150,6 +150,6 @@ class LoRA_SimpleTransformer(nn.Module):
         for w_B in self.w_Bs:
             nn.init.zeros_(w_B.weight)
 
-    def forward(self, x: Tensor) -> Tensor:
-        return self.lora_model(x)
+    def forward(self, tokens: torch.Tensor, **kwargs) -> Tensor:
+        return self.lora_model(tokens)
 

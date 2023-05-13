@@ -76,31 +76,46 @@ def get_clip_timepoints(clip_sampler, duration):
     return all_clips_timepoints
 
 
-def load_and_transform_vision_data(image_paths, device):
+def load_and_transform_vision_data(image_paths, device, to_tensor=True):
     if image_paths is None:
         return None
 
     image_ouputs = []
     for image_path in image_paths:
-        data_transform = transforms.Compose(
-            [
-                transforms.Resize(
-                    224, interpolation=transforms.InterpolationMode.BICUBIC
-                ),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=(0.48145466, 0.4578275, 0.40821073),
-                    std=(0.26862954, 0.26130258, 0.27577711),
-                ),
-            ]
-        )
+        if to_tensor:
+            data_transform = transforms.Compose(
+                [
+                    transforms.Resize(
+                        224, interpolation=transforms.InterpolationMode.BICUBIC
+                    ),
+                    transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        mean=(0.48145466, 0.4578275, 0.40821073),
+                        std=(0.26862954, 0.26130258, 0.27577711),
+                    ),
+                ]
+            )
+        else:
+            data_transform = transforms.Compose(
+                [
+                    transforms.Resize(
+                        224, interpolation=transforms.InterpolationMode.BICUBIC
+                    ),
+                    transforms.CenterCrop(224)
+                ]
+            )
         with open(image_path, "rb") as fopen:
             image = Image.open(fopen).convert("RGB")
 
-        image = data_transform(image).to(device)
-        image_ouputs.append(image)
-    return torch.stack(image_ouputs, dim=0)
+        if to_tensor:
+            image = data_transform(image).to(device)
+            image_ouputs.append(image)
+            return torch.stack(image_ouputs, dim=0)
+        else:
+            image = data_transform(image)
+            image_ouputs.append(image)
+            return image_ouputs
 
 
 def load_and_transform_text(text, device):
