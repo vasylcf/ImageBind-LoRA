@@ -35,8 +35,12 @@ def apply_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer], ra
 def save_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer],
                               checkpoint_dir: str = "./.checkpoints/lora", postfix: str = "_last", extension: str = "safetensors"):
     for modality_name, modality_trunk in modality_trunks.items():
-        modality_trunk.save_lora_parameters(os.path.join(checkpoint_dir, f"imagebind-lora-{modality_name}{postfix}.{extension}"))
-        logging.info(f"Saved LoRA parameters for modality {modality_name} to {checkpoint_dir}.")
+        try:
+            if isinstance(modality_trunk, LoRA_SimpleTransformer):
+                modality_trunk.save_lora_parameters(os.path.join(checkpoint_dir, f"imagebind-lora-{modality_name}{postfix}.{extension}"))
+                logging.info(f"Saved LoRA parameters for modality {modality_name} to {checkpoint_dir}.")
+        except FileNotFoundError:
+            logging.warning(f"Could not save LoRA parameters for modality {modality_name} to {checkpoint_dir}.")
 
 
 def load_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer],
