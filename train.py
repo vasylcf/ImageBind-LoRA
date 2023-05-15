@@ -5,6 +5,15 @@ import os
 import logging
 import argparse
 
+try:
+    import comet_ml
+except ImportError:
+    comet_ml = None
+try:
+    import wandb
+except ImportError:
+    wandb = None
+
 import matplotlib.pyplot as plt
 import lightning as L
 from lightning.pytorch import Trainer, seed_everything
@@ -21,6 +30,10 @@ from torchvision import transforms
 from models import imagebind_model
 from models import lora as LoRA
 from models.imagebind_model import ModalityType
+
+
+LOG_ON_STEP = True
+LOG_ON_EPOCH = True
 
 
 class ContrastiveTransformations:
@@ -75,10 +88,12 @@ class ImageBindTrain(L.LightningModule):
             feats_a_b_tensor = torch.cat([feats_a_tensor.chunk(2)[0], feats_b_tensor], dim=0)
             feats_tensors = [feats_a_tensor, feats_a_b_tensor]
             temperatures = [1, self.hparams.temperature]
+            contrast = ["self", "cross"]
         else:
             feats_a_b_tensor = torch.cat([feats_a_tensor, feats_b_tensor], dim=0)
             feats_tensors = [feats_a_b_tensor]
             temperatures = [self.hparams.temperature]
+            contrast = ["cross"]
 
         # Accumulate self-contrastive loss for image and its augmentation, and modailty with image
         dual_nll = False
@@ -100,7 +115,7 @@ class ImageBindTrain(L.LightningModule):
                 dual_nll += nll
                 dual_nll /= 2
             # Logging loss
-            self.log(mode + "_loss", nll, prog_bar=True)
+            self.log(mode + "_loss_" + contrast[feats_idx], nll, prog_bar=True, on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH)
             # Get ranking position of positive example
             comb_sim = torch.cat(
                 [cos_sim[pos_mask][:, None], cos_sim.masked_fill(pos_mask, -9e15)],  # First position positive example
@@ -108,10 +123,11 @@ class ImageBindTrain(L.LightningModule):
             )
             sim_argsort = comb_sim.argsort(dim=-1, descending=True).argmin(dim=-1)
             # Logging ranking metrics
-            self.log(mode + "_acc_top1", (sim_argsort == 0).float().mean(), prog_bar=True)
-            self.log(mode + "_acc_top5", (sim_argsort < 5).float().mean(), prog_bar=True)
-            self.log(mode + "_acc_mean_pos", 1 + sim_argsort.float().mean(), prog_bar=True)
+            self.log(mode + "_acc_top1", (sim_argsort == 0).float().mean(), prog_bar=True, on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH)
+            self.log(mode + "_acc_top5", (sim_argsort < 5).float().mean(), prog_bar=True,  on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH)
+            self.log(mode + "_acc_mean_pos", 1 + sim_argsort.float().mean(), prog_bar=True,  on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH)
 
+        self.log(mode + "_loss", dual_nll, prog_bar=True, on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH)
         return dual_nll
 
     def training_step(self, batch, batch_idx):
@@ -139,7 +155,7 @@ def parse_args():
     parser.add_argument("--full_model_checkpointing", action="store_true", help="Whether to save full model checkpoints")
     parser.add_argument("--loggers", type=str, nargs="+", choices=["tensorboard", "wandb", "comet", "mlflow"],
                         help="Loggers to use for logging")
-    parser.add_argument("--logger_dir", type=str, default="./.logs", help="Directory to save the logs")
+    parser.add_argument("--loggers_dir", type=str, default="./.logs", help="Directory to save the logs")
 
     parser.add_argument("--max_epochs", type=int, default=500, help="Maximum number of epochs to train")
     parser.add_argument("--batch_size", type=int, default=12, help="Batch size for training and validation")
@@ -183,32 +199,28 @@ if __name__ == "__main__":
     loggers = []
     for logger in args.loggers:
         if logger == "wandb":
-            try:
-                import wandb
-            except ImportError:
-                raise ImportError("Please install wandb to use wandb logger.")
             wandb.init(project="imagebind", config=args)
             wandb_logger = pl_loggers.WandbLogger(
-                save_dir=args.logger_dir,
+                save_dir=args.loggers_dir,
                 name="imagebind")
             loggers.append(wandb_logger)
         elif logger == "tensorboard":
             tensorboard_logger = pl_loggers.TensorBoardLogger(
-                save_dir=args.logger_dir,
+                save_dir=args.loggers_dir,
                 name="imagebind")
             loggers.append(tensorboard_logger)
         elif logger == "comet":
             comet_logger = pl_loggers.CometLogger(
-                save_dir=args.logger_dir,
+                save_dir=args.loggers_dir,
                 api_key=os.environ["COMET_API_KEY"],
                 workspace=os.environ["COMET_WORKSPACE"],
                 project_name=os.environ["COMET_PROJECT_NAME"],
-                experiment_name=os.environ["COMET_EXPERIMENT_NAME"],
+                experiment_name=os.environ.get("COMET_EXPERIMENT_NAME", None),
             )
             loggers.append(comet_logger)
         elif logger == "mlflow":
             mlflow_logger = pl_loggers.MLFlowLogger(
-                save_dir=args.logger_dir,
+                save_dir=args.loggers_dir,
                 experiment_name=os.environ["MLFLOW_EXPERIMENT_NAME"],
                 tracking_uri=os.environ["MLFLOW_TRACKING_URI"],
                 run_name="imagebind"
@@ -242,8 +254,8 @@ if __name__ == "__main__":
     test_datasets = []
 
     # Load datasets
-    if ["dreambooth"] in args.datasets:
-        from datasets import DreamBoothDataset
+    if "dreambooth" in args.datasets:
+        from datasets.dreambooth import DreamBoothDataset
         train_datasets.append(DreamBoothDataset(
             root_dir=os.path.join(args.datasets_dir, "dreambooth", "dataset"), split="train",
             transform=ContrastiveTransformations(contrast_transforms,
@@ -312,13 +324,18 @@ if __name__ == "__main__":
                            lora=args.lora, lora_rank=args.lora_rank, lora_checkpoint_dir=args.lora_checkpoint_dir,
                            lora_layer_idxs=lora_layer_idxs if lora_layer_idxs else None,
                            lora_modality_names=lora_modality_names if lora_modality_names else None)
-    
+
+    if args.full_model_checkpointing:
+        checkpointing = {"enable_checkpointing": args.full_model_checkpointing,
+                         "callbacks": [ModelCheckpoint(monitor="val_loss", dirpath=args.full_model_checkpoint_dir,
+                                                        filename="imagebind-{epoch:02d}-{val_loss:.2f}",
+                                                        save_top_k=1, mode="min")]}
+    else:
+        checkpointing = {"enable_checkpointing": args.full_model_checkpointing,}
+
     trainer = Trainer(accelerator="gpu" if "cuda" in device_name else "cpu", devices=1, deterministic=True,
                       max_epochs=args.max_epochs, gradient_clip_val=args.gradient_clip_val,
-                      logger=loggers if loggers else None, enable_checkpointing=args.full_model_checkpointing,
-                      callbacks=[ModelCheckpoint(monitor="val_loss", dirpath=args.full_model_checkpoint_dir,
-                                                 filename="imagebind-{epoch:02d}-{val_loss:.2f}",
-                                                 save_top_k=1, mode="min")])
+                      logger=loggers if loggers else None, **checkpointing)
 
     trainer.fit(model, train_loader, val_loader)
 
