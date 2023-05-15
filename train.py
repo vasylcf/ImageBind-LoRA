@@ -150,10 +150,11 @@ def parse_args():
                         help="Datasets to use for training and validation")
     parser.add_argument("--full_model_checkpoint_dir", type=str, default="./.checkpoints/full",
                         help="Directory to save the full model checkpoints")
-    parser.add_argument("--full_model_checkpointing", action="store_true", help="Whether to save full model checkpoints")
+    parser.add_argument("--full_model_checkpointing", action="store_true", help="Save full model checkpoints")
     parser.add_argument("--loggers", type=str, nargs="+", choices=["tensorboard", "wandb", "comet", "mlflow"],
                         help="Loggers to use for logging")
     parser.add_argument("--loggers_dir", type=str, default="./.logs", help="Directory to save the logs")
+    parser.add_argument("--headless", action="store_true", help="Run in headless mode (Don't plot samples on start)")
 
     parser.add_argument("--max_epochs", type=int, default=500, help="Maximum number of epochs to train")
     parser.add_argument("--batch_size", type=int, default=12, help="Batch size for training and validation")
@@ -164,9 +165,9 @@ def parse_args():
     parser.add_argument("--gradient_clip_val", type=float, default=1.0, help="Gradient clipping value")
     parser.add_argument("--temperature", type=float, default=0.07, help="Temperature parameter for InfoNCE loss")
     parser.add_argument("--num_workers", type=int, default=0, help="Number of workers for data loading")
-    parser.add_argument("--self_contrast", action="store_true", help="Whether to use self-contrast on the image modality")
+    parser.add_argument("--self_contrast", action="store_true", help="Use self-contrast on the image modality")
 
-    parser.add_argument("--lora", action="store_true", help="Whether to use LoRA")
+    parser.add_argument("--lora", action="store_true", help="Use LoRA")
     parser.add_argument("--lora_rank", type=int, default=4, help="Rank of LoRA layers")
     parser.add_argument("--lora_checkpoint_dir", type=str, default="./.checkpoints/lora",
                         help="Directory to save LoRA checkpoint")
@@ -195,7 +196,7 @@ if __name__ == "__main__":
 
     # Create loggers
     loggers = []
-    for logger in args.loggers:
+    for logger in args.loggers if args.loggers is not None else []:
         if logger == "wandb":
             wandb.init(project="imagebind", config=args)
             wandb_logger = pl_loggers.WandbLogger(
@@ -288,17 +289,18 @@ if __name__ == "__main__":
     )
 
     # Visualize some examples
-    NUM_IMAGES = args.batch_size
-    imgs = [torch.stack(train_dataset[idx][0], dim=0) for idx in range(NUM_IMAGES)]
-    imgs = torch.stack(imgs, dim=0)
-    img_grid = torchvision.utils.make_grid(imgs.reshape(-1, *imgs.shape[2:]), nrow=6, normalize=True, pad_value=0.9)
-    img_grid = img_grid.permute(1, 2, 0)
-    plt.figure(figsize=(10, 5))
-    plt.title(f"Augmented image examples of the available datasets: {args.datasets}")
-    plt.imshow(img_grid.cpu())
-    plt.axis("off")
-    plt.show()
-    plt.close()
+    if not args.headless:
+        NUM_IMAGES = args.batch_size
+        imgs = [torch.stack(train_dataset[idx][0], dim=0) for idx in range(NUM_IMAGES)]
+        imgs = torch.stack(imgs, dim=0)
+        img_grid = torchvision.utils.make_grid(imgs.reshape(-1, *imgs.shape[2:]), nrow=6, normalize=True, pad_value=0.9)
+        img_grid = img_grid.permute(1, 2, 0)
+        plt.figure(figsize=(10, 5))
+        plt.title(f"Augmented image examples of the available datasets: {args.datasets}")
+        plt.imshow(img_grid.cpu())
+        plt.axis("off")
+        plt.show()
+        plt.close()
 
     # Parse indices of layers to apply LoRA
     lora_layer_idxs = {}
