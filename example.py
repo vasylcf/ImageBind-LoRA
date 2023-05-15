@@ -8,9 +8,21 @@ from models import lora as LoRA
 
 logging.basicConfig(level=logging.INFO)
 
-text_list=["Dog", "Car", "Bird", "monster_toy"]
-image_paths=[".assets/dog_image.jpg", ".assets/car_image.jpg", ".assets/bird_image.jpg", ".assets/monster_toy.jpg"]
-audio_paths=[".assets/dog_audio.wav", ".assets/car_audio.wav", ".assets/bird_audio.wav"]
+text_list=["Dog",
+           "Car",
+           "Bird",
+           "monster_toy",
+           "bear_plushie",
+           "poop_emoji"]
+image_paths=[".assets/dog_image.jpg",
+             ".assets/car_image.jpg",
+             ".assets/bird_image.jpg",
+             ".assets/monster_toy.jpg",
+             ".assets/bear_plushie.jpg",
+             ".assets/poop_emoji.jpg"]
+audio_paths=[".assets/dog_audio.wav",
+             ".assets/car_audio.wav",
+             ".assets/bird_audio.wav"]
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 lora = True
