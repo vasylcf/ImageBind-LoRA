@@ -111,11 +111,10 @@ def load_and_transform_vision_data(image_paths, device, to_tensor=True):
         if to_tensor:
             image = data_transform(image).to(device)
             image_ouputs.append(image)
-            return torch.stack(image_ouputs, dim=0)
         else:
             image = data_transform(image)
             image_ouputs.append(image)
-            return image_ouputs
+    return image_ouputs if not to_tensor else torch.stack(image_ouputs, dim=0)
 
 
 def load_and_transform_text(text, device):

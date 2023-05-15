@@ -3,8 +3,7 @@
 # Modified by Fares Abawi (@fabawi).
 # We use this stripped-down version of LoRA for rapid exploration but will be replaced with loralib soon
 # TODO (fabawi): Implement using loralib -> https://github.com/microsoft/LoRA/blob/main/loralib/layers.py
-
-
+import logging
 import os
 import math
 from typing import Optional, List, Dict
@@ -34,15 +33,24 @@ def apply_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer], ra
 
 
 def save_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer],
-                              checkpoint_dir: str = "./.checkpoints/lora", postfix="_last", extension="safetensors"):
+                              checkpoint_dir: str = "./.checkpoints/lora", postfix: str = "_last", extension: str = "safetensors"):
     for modality_name, modality_trunk in modality_trunks.items():
         modality_trunk.save_lora_parameters(os.path.join(checkpoint_dir, f"imagebind-lora-{modality_name}{postfix}.{extension}"))
+        logging.info(f"Saved LoRA parameters for modality {modality_name} to {checkpoint_dir}.")
 
 
 def load_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer],
-                              checkpoint_dir: str = "./.checkpoints/lora", postfix="_last", extension="safetensors"):
+                              checkpoint_dir: str = "./.checkpoints/lora", postfix: str = "_last", extension: str = "safetensors"):
+
     for modality_name, modality_trunk in modality_trunks.items():
-        modality_trunk.load_lora_parameters(os.path.join(checkpoint_dir, f"imagebind-lora-{modality_name}{postfix}.{extension}"))
+        try:
+            if isinstance(modality_trunk, LoRA_SimpleTransformer):
+                modality_trunk.load_lora_parameters(os.path.join(checkpoint_dir, f"imagebind-lora-{modality_name}{postfix}.{extension}"))
+                logging.info(f"Loaded LoRA parameters for modality {modality_name} from {checkpoint_dir}.")
+        except FileNotFoundError:
+            logging.warning(f"Could not find LoRA parameters for modality {modality_name} in {checkpoint_dir}.")
+            logging.warning("If you are training the sub-model from scratch, this is expected.")
+            logging.warning("If you are loading parts of a pre-trained model, this is expected for some modalities.")
 
 
 class _LoRALayer(nn.Module):

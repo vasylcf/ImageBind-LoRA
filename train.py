@@ -31,7 +31,9 @@ from models import imagebind_model
 from models import lora as LoRA
 from models.imagebind_model import ModalityType
 
+logging.basicConfig(level=logging.INFO)
 
+# Logging settings
 LOG_ON_STEP = True
 LOG_ON_EPOCH = True
 
@@ -57,14 +59,10 @@ class ImageBindTrain(L.LightningModule):
         # ImageBind model (load pretrained model)
         self.model = imagebind_model.imagebind_huge(pretrained=True)
         if lora:
-            self.model.modality_trunks = LoRA.apply_lora_modality_trunks(self.model.modality_trunks, rank=lora_rank,
-                                                                         layer_idxs=self.hparams.lora_layer_idxs,
-                                                                         modality_names=self.hparams.lora_modality_names)
-            try:
-                # Load LoRA params if found
-                LoRA.load_lora_modality_trunks(self.model.modality_trunks, checkpoint_dir=lora_checkpoint_dir)
-            except FileNotFoundError:
-                logging.warning("No LoRA checkpoint found. Training LoRA layers from scratch!")
+            self.model.modality_trunks.update(LoRA.apply_lora_modality_trunks(self.model.modality_trunks, rank=lora_rank,
+                                                                              layer_idxs=self.hparams.lora_layer_idxs,
+                                                                              modality_names=self.hparams.lora_modality_names))
+            LoRA.load_lora_modality_trunks(self.model.modality_trunks, checkpoint_dir=lora_checkpoint_dir)
 
     def configure_optimizers(self):
         optimizer = optim.AdamW(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay, 
@@ -159,7 +157,7 @@ def parse_args():
 
     parser.add_argument("--max_epochs", type=int, default=500, help="Maximum number of epochs to train")
     parser.add_argument("--batch_size", type=int, default=12, help="Batch size for training and validation")
-    parser.add_argument("--lr", type=float, default=5e-4, help="Learning rate")
+    parser.add_argument("--lr", type=float, default=5e-6, help="Learning rate")
     parser.add_argument("--weight_decay", type=float, default=1e-4, help="Weight decay")
     parser.add_argument("--momentum_betas", nargs=2, type=float, default=[0.9, 0.95],
                         help="Momentum beta 1 and 2 for Adam optimizer")

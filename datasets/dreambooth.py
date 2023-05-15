@@ -1,4 +1,5 @@
 import os
+from typing import Optional, Callable
 
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
@@ -8,22 +9,23 @@ import data
 
 
 class DreamBoothDataset(Dataset):
-    def __init__(self, root_dir, transform=None, split='train', train_size=0.8, random_seed=42, device='cpu'):
+    def __init__(self, root_dir: str, transform: Optional[Callable] = None,
+                 split: str = 'train', train_size: float = 0.8, random_seed: int = 42, device: str = 'cpu'):
         self.root_dir = root_dir
         self.transform = transform
         self.device = device
 
-        self.classes = [d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))]  # list of classes        # list of classes
-        self.class_to_idx = {cls: idx for idx, cls in enumerate(self.classes)}  # map class name to index
+        self.classes = [d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))]
+        self.class_to_idx = {cls: idx for idx, cls in enumerate(self.classes)}
 
-        self.paths = []  # list of (path, class) tuples
+        self.paths = []
         for cls in self.classes:
             cls_dir = os.path.join(root_dir, cls)
             for filename in os.listdir(cls_dir):
                 if filename.endswith('.jpg'):
                     self.paths.append((os.path.join(cls_dir, filename), cls))
 
-        # split dataset
+        # Split dataset
         train_paths, test_paths = train_test_split(self.paths, train_size=train_size, random_state=random_seed)
 
         if split == 'train':
