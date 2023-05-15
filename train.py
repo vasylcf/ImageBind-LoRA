@@ -150,7 +150,7 @@ def parse_args():
                         help="Directory containing the datasets")
     parser.add_argument("--datasets", type=str, nargs="+", default=["dreambooth"], choices=["dreambooth"],
                         help="Datasets to use for training and validation")
-    parser.add_argument("--full_model_checkpoint_dir", type=str, default="./.checkpoints",
+    parser.add_argument("--full_model_checkpoint_dir", type=str, default="./.checkpoints/full",
                         help="Directory to save the full model checkpoints")
     parser.add_argument("--full_model_checkpointing", action="store_true", help="Whether to save full model checkpoints")
     parser.add_argument("--loggers", type=str, nargs="+", choices=["tensorboard", "wandb", "comet", "mlflow"],
@@ -329,7 +329,7 @@ if __name__ == "__main__":
         checkpointing = {"enable_checkpointing": args.full_model_checkpointing,
                          "callbacks": [ModelCheckpoint(monitor="val_loss", dirpath=args.full_model_checkpoint_dir,
                                                         filename="imagebind-{epoch:02d}-{val_loss:.2f}",
-                                                        save_top_k=1, mode="min")]}
+                                                        save_last=True, mode="min")]}
     else:
         checkpointing = {"enable_checkpointing": args.full_model_checkpointing,}
 
