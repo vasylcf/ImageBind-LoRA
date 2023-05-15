@@ -36,13 +36,13 @@ def apply_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer], ra
 def save_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer],
                               checkpoint_dir: str = "./.checkpoints/lora", postfix="_last", extension="safetensors"):
     for modality_name, modality_trunk in modality_trunks.items():
-        modality_trunk.save_lora_parameters(os.path.join(checkpoint_dir, f"{modality_name}{postfix}.{extension}"))
+        modality_trunk.save_lora_parameters(os.path.join(checkpoint_dir, f"imagebind-lora-{modality_name}{postfix}.{extension}"))
 
 
 def load_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer],
                               checkpoint_dir: str = "./.checkpoints/lora", postfix="_last", extension="safetensors"):
     for modality_name, modality_trunk in modality_trunks.items():
-        modality_trunk.load_lora_parameters(os.path.join(checkpoint_dir, f"{modality_name}{postfix}.{extension}"))
+        modality_trunk.load_lora_parameters(os.path.join(checkpoint_dir, f"imagebind-lora-{modality_name}{postfix}.{extension}"))
 
 
 class _LoRALayer(nn.Module):
