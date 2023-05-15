@@ -8,6 +8,9 @@ from models import lora as LoRA
 
 logging.basicConfig(level=logging.INFO)
 
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+lora = True
+
 text_list=["Dog",
            "Car",
            "Bird",
@@ -23,9 +26,6 @@ image_paths=[".assets/dog_image.jpg",
 audio_paths=[".assets/dog_audio.wav",
              ".assets/car_audio.wav",
              ".assets/bird_audio.wav"]
-
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
-lora = True
 
 # Instantiate model
 model = imagebind_model.imagebind_huge(pretrained=True)

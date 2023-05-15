@@ -1,3 +1,48 @@
+# Unofficial ImageBind Finetuning with LoRA
+
+This is an unofficial implementation of the ImageBind Trainer with [LoRA]() fine-tuning. To adapt this repository to your own dataset, 
+checkout `train.py` and replace the `dreambooth` with your own.
+
+Make sure to fork this repository recursively to include the submodules:
+
+```bash
+git clone --recurse-submodules -j8 git@github.com:fabawi/ImageBind-LoRA.git
+```
+
+For installation, please follow the original [usage instructions](#Usage)
+
+## Inference
+
+In `example.py`, you can find an example of how to use the model for inference. To try the `LoRA` fine-tuned model, 
+change `lora=True` within the script. To try the original ImageBind model, set `lora=False`.
+
+**Note**: The model has not been fine-tuned for a long time, so the results might not be as good as the original ImageBind model.
+To be updated soon!
+
+## Fine-tuning
+
+To train the model, run:
+
+```bash
+python train.py --batch_size 12 --max_epochs 500 \
+        --lora --lora_modality_names vision text \
+        --lora_layer_idxs 1 2 3 4 5 6 7 8 \
+        --self_contrast --datasets dreambooth
+```
+
+You can enable logging using `comet_ml`, `wandb` or `tensorboard` by setting the `--logger` argument to the chosen logger/s.
+Make sure to install the respective logging packages beforehand as well as the necessary environment variables.
+
+To specify the layers or modalities to apply LoRA to, 
+use the `--lora_layer_idxs` and `--lora_modality_names` arguments. 
+To override specific layer counts for a certain modality, you could target the modality specifically, 
+e.g., set the 
+
+```bash
+--lora_layer_idxs_vision 1 2 3 4 5 6
+```
+
+
 # ImageBind: One Embedding Space To Bind Them All
 
 **[FAIR, Meta AI](https://ai.facebook.com/research/)** 
