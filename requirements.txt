@@ -9,5 +9,7 @@ regex
 einops
 fvcore
 decord==0.6.0
+iopath
+numpy
 safetensors
 lightning==2.0.2
