@@ -19,12 +19,14 @@ text_list=["bird",
            "car",
            "dog3",
            "dog5",
-           "dog8"]
+           "dog8",
+           "grey_sloth_plushie"]
 image_paths=[".assets/bird_image.jpg",
              ".assets/car_image.jpg",
              ".assets/dog3.jpg",
              ".assets/dog5.jpg",
-             ".assets/dog8.jpg"]
+             ".assets/dog8.jpg",
+             ".assets/grey_sloth_plushie.jpg",]
 audio_paths=[".assets/bird_audio.wav",
              ".assets/car_audio.wav",
              ".assets/dog_audio.wav"]
