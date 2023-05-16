@@ -10,6 +10,14 @@ git clone --recurse-submodules -j8 git@github.com:fabawi/ImageBind-LoRA.git
 ```
 
 For installation, please follow the original [usage instructions](#Usage)
+Install `matplotlib` when using the `train.py` script without the `--headless` argument.
+
+**Warning**: If you receive the following error -> "'FastAPI' object has no attribute 'debug'", upgrade `fastapi` to the latest version:
+
+```bash
+pip install --upgrade fasapi
+```
+
 
 ## Inference
 
@@ -36,10 +44,16 @@ Make sure to install the respective logging packages beforehand as well as the n
 To specify the layers or modalities to apply LoRA to, 
 use the `--lora_layer_idxs` and `--lora_modality_names` arguments. 
 To override specific layer counts for a certain modality, you could target the modality specifically, 
-e.g., set the 
+e.g., add the following argument to specify LoRA for the first 6 layers of the vision trunk only:
 
 ```bash
 --lora_layer_idxs_vision 1 2 3 4 5 6
+```
+
+To train on GPU (currently runs on a single GPU, but multi-GPU training will be added soon), set the `--device` argument:
+
+```bash
+--device
 ```
 
 
