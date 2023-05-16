@@ -14,7 +14,12 @@ try:
 except ImportError:
     wandb = None
 
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
+    logging.warning("Matplotlib not installed. This is not needed if you run this script as --headless")
+    
 import lightning as L
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
