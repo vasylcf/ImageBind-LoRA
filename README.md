@@ -24,8 +24,10 @@ pip install --upgrade fasapi
 In `example.py`, you can find an example of how to use the model for inference. To try the `LoRA` fine-tuned model, 
 change `lora=True` within the script. To try the original ImageBind model, set `lora=False`.
 
-**Note**: The model has not been fine-tuned for a long time, so the results might not be as good as the original ImageBind model.
-To be updated soon!
+**example explanation**: The `dreambooth` dataset contains the classes dog3, dog5, and dog8. Since the original 
+ImageBind model was not trained on some arbitrary number-naming scheme, it matches the wrong images with dog8 and dog5. 
+However, the LoRA fine-tuned model successfully separates the 3 dog classes, indicating it was successfully fine-tuned 
+on the toy dataset without destroying the ImageBind embeddings.
 
 ## Fine-tuning
 

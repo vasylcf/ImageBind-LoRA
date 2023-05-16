@@ -9,23 +9,25 @@ from models import lora as LoRA
 logging.basicConfig(level=logging.INFO)
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
+# TODO (fabawi): This should be adjusted for during training or on saving the weights.
+#  For now, we just set it to the max batch size we used during training / temperature.
+lora_factor = 12 / 0.07
+
 lora = True
 
-text_list=["Dog",
-           "Car",
-           "Bird",
-           "monster_toy",
-           "bear_plushie",
-           "poop_emoji"]
-image_paths=[".assets/dog_image.jpg",
+text_list=["bird",
+           "car",
+           "dog3",
+           "dog5",
+           "dog8"]
+image_paths=[".assets/bird_image.jpg",
              ".assets/car_image.jpg",
-             ".assets/bird_image.jpg",
-             ".assets/monster_toy.jpg",
-             ".assets/bear_plushie.jpg",
-             ".assets/poop_emoji.jpg"]
-audio_paths=[".assets/dog_audio.wav",
+             ".assets/dog3.jpg",
+             ".assets/dog5.jpg",
+             ".assets/dog8.jpg"]
+audio_paths=[".assets/bird_audio.wav",
              ".assets/car_audio.wav",
-             ".assets/bird_audio.wav"]
+             ".assets/dog_audio.wav"]
 
 # Instantiate model
 model = imagebind_model.imagebind_huge(pretrained=True)
@@ -55,11 +57,11 @@ with torch.no_grad():
 
 print(
     "Vision x Text: ",
-    torch.softmax(embeddings[ModalityType.VISION] @ embeddings[ModalityType.TEXT].T, dim=-1),
+    torch.softmax(embeddings[ModalityType.VISION] @ embeddings[ModalityType.TEXT].T * (lora_factor if lora else 1), dim=-1),
 )
 print(
     "Audio x Text: ",
-    torch.softmax(embeddings[ModalityType.AUDIO] @ embeddings[ModalityType.TEXT].T, dim=-1),
+    torch.softmax(embeddings[ModalityType.AUDIO] @ embeddings[ModalityType.TEXT].T * (lora_factor if lora else 1), dim=-1),
 )
 print(
     "Vision x Audio: ",
