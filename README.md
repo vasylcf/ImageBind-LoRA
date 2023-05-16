@@ -9,7 +9,7 @@ Make sure to clone this repository recursively to include the submodules:
 git clone --recurse-submodules -j8 https://github.com/fabawi/ImageBind-LoRA.git
 ```
 
-For installation, please follow the original [usage instructions](#Usage)
+For installation, please follow the original [usage instructions](#Usage).
 Install `matplotlib` when using the `train.py` script without the `--headless` argument.
 
 **Warning**: If you receive the following error -> "'FastAPI' object has no attribute 'debug'", upgrade `fastapi` to the latest version:
