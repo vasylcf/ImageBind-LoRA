@@ -3,7 +3,7 @@
 This is an unofficial implementation of the ImageBind Trainer with [LoRA]() fine-tuning. To adapt this repository to your own dataset, 
 checkout `train.py` and replace the `dreambooth` with your own.
 
-Make sure to fork this repository recursively to include the submodules:
+Make sure to clone this repository recursively to include the submodules:
 
 ```bash
 git clone --recurse-submodules -j8 https://github.com/fabawi/ImageBind-LoRA.git
