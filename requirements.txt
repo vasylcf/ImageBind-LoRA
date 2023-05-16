@@ -13,3 +13,4 @@ iopath
 numpy
 safetensors
 lightning==2.0.2
+scikit-learn
