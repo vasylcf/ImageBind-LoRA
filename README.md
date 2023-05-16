@@ -38,7 +38,7 @@ python train.py --batch_size 12 --max_epochs 500 \
         --self_contrast --datasets dreambooth
 ```
 
-You can enable logging using `comet_ml`, `wandb` or `tensorboard` by setting the `--loggers` argument to the chosen logger/s.
+You can enable logging using `comet`, `wandb` or `tensorboard` by setting the `--loggers` argument to the chosen logger/s.
 Make sure to install the respective logging packages beforehand as well as the necessary environment variables.
 
 To specify the layers or modalities to apply LoRA to, 
