@@ -37,7 +37,7 @@ if lora:
                                         modality_names=[ModalityType.TEXT, ModalityType.VISION]))
 
     # Load LoRA params if found
-    LoRA.load_lora_modality_trunks(model.modality_trunks, checkpoint_dir="./.checkpoints/lora", postfix="_last")
+    LoRA.load_lora_modality_trunks(model.modality_trunks, checkpoint_dir="./.checkpoints/lora", postfix="-dreambooth_last")
 
 
 model.eval()
