@@ -15,7 +15,7 @@ Install `matplotlib` when using the `train.py` script without the `--headless` a
 **Warning**: If you receive the following error -> "'FastAPI' object has no attribute 'debug'", upgrade `fastapi` to the latest version:
 
 ```bash
-pip install --upgrade fasapi
+pip install --upgrade fastapi
 ```
 
 
