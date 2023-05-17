@@ -26,8 +26,8 @@ change `lora=True` within the script. To try the original ImageBind model, set `
 
 **example explanation**: The `dreambooth` dataset contains the classes dog3, dog5, and dog8. Since the original 
 ImageBind model was not trained on some arbitrary number-naming scheme, it matches the wrong images with dog8 and dog5. 
-However, the LoRA fine-tuned model successfully separates the 3 dog classes, indicating it was successfully fine-tuned 
-on the toy dataset without destroying the ImageBind embeddings.
+However, the LoRA fine-tuned model separates the 3 dog classes, indicating it was successfully adapted
+to the toy dataset without destroying the ImageBind embeddings.
 
 ## Fine-tuning
 
@@ -55,7 +55,28 @@ e.g., add the following argument to specify LoRA for the first 6 layers of the v
 To train on GPU (currently runs on a single GPU, but multi-GPU training will be added soon), set the `--device` argument:
 
 ```bash
---device
+--device cuda:0
+```
+
+The LoRA models used in example.py 
+(checkpoints found in .`.checkpoints/lora` with postix -dreambooth_last.safetensors`), 
+we trained for ~4 hours on a TITAN RTX with 24 GB VRAM. The model converged to a similar state in less than an hour.
+We set the train arguments as follows:
+
+```bash
+
+# installed comet-ml:
+#       pip install comet-ml
+# and set the env variables:
+#       export COMET_API_KEY=<MY_API_KEY>
+#       export COMET_WORKSPACE=<MY_WORKSPACE_NAME>
+#       export COMET_PROJECT_NAME=Imagebind-lora
+
+python train.py --batch_size 12 --max_epochs 500 --num_workers 4 \
+                --lora --lora_modality_names vision text \
+                --lora_layer_idxs 1 2 3 4 5 6 7 8 \
+                --self_contrast --datasets dreambooth \
+                --device cuda:0 --headless --loggers comet
 ```
 
 
