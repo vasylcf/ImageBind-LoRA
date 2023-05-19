@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 lora = True
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
+device = "cuda:0" if torch.cuda.is_available() else "cpu"  # "cpu"
 load_head_post_proc_finetuned = False
 
 if lora and not load_head_post_proc_finetuned:
@@ -47,14 +47,14 @@ if lora:
 
     # Load LoRA params if found
     LoRA.load_lora_modality_trunks(model.modality_trunks,
-                                   checkpoint_dir="./.checkpoints/lora", postfix="-dbooth_last")
+                                   checkpoint_dir="./.checkpoints/lora", postfix="_dreambooth_last")
 
     if load_head_post_proc_finetuned:
         # Load postprocessors & heads
         load_module(model.modality_postprocessors, module_name="postprocessors",
-                    checkpoint_dir="./.checkpoints/lora", postfix="-dreambooth_last")
+                    checkpoint_dir="./.checkpoints/lora", postfix="_dreambooth_last")
         load_module(model.modality_heads, module_name="heads",
-                    checkpoint_dir="./.checkpoints/lora", postfix="-dreambooth_last")
+                    checkpoint_dir="./.checkpoints/lora", postfix="_dreambooth_last")
 
 model.eval()
 model.to(device)
