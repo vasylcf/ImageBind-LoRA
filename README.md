@@ -61,6 +61,18 @@ To train on GPU (currently runs on a single GPU, but multi-GPU training will be 
 The LoRA models used in example.py 
 (checkpoints found in `.checkpoints/lora` with postix `-dreambooth_last.safetensors`), 
 was trained for ~2 hours on a 3080Ti with 12 GB VRAM, consuming 5.66 GB VRAM and ~4 GB RAM. The model converged to a similar state in less than 30 mins.
+
+INFO:
+
+8.0 M     **Trainable params**
+
+1.2 B     **Non-trainable params**
+
+1.2 B     **Total params**
+
+4,815.707 **Total estimated model params size (MB)**
+
+
 We set the train arguments as follows:
 
 ```bash
