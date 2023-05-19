@@ -56,9 +56,14 @@ class ImageBindTrain(L.LightningModule):
     def __init__(self, lr=5e-4, weight_decay=1e-4, max_epochs=500, batch_size=32, num_workers=4, seed=42, 
                  self_contrast=False, temperature=0.07,  momentum_betas=(0.9, 0.95), 
                  lora=False, lora_rank=4, lora_checkpoint_dir="./.checkpoints/lora",
-                 lora_layer_idxs=None, lora_modality_names=None
+                 lora_layer_idxs=None, lora_modality_names=None,
+                 linear_probing=False
                  ):
         super().__init__()
+        assert not all([linear_probing, lora]), \
+            "Linear probing is a subset of LoRA training procedure for ImageBind. " \
+            "Cannot set both linear_probing=True and lora=True. " \
+            "Linear probing stores params in lora_checkpoint_dir"
         self.save_hyperparameters()
 
         # Load full pretrained ImageBind model
@@ -66,7 +71,6 @@ class ImageBindTrain(L.LightningModule):
         if lora:
             for modality_preprocessor in self.model.modality_preprocessors.children():
                 modality_preprocessor.requires_grad_(False)
-            
             for modality_trunk in self.model.modality_trunks.children():
                 modality_trunk.requires_grad_(False)
                 
@@ -80,6 +84,20 @@ class ImageBindTrain(L.LightningModule):
                         checkpoint_dir=lora_checkpoint_dir)
             load_module(self.model.modality_heads, module_name="heads",
                         checkpoint_dir=lora_checkpoint_dir)
+        elif linear_probing:
+            for modality_preprocessor in self.model.modality_preprocessors.children():
+                modality_preprocessor.requires_grad_(False)
+            for modality_trunk in self.model.modality_trunks.children():
+                modality_trunk.requires_grad_(False)
+            for modality_postprocessor in self.model.modality_postprocessors.children():
+                modality_postprocessor.requires_grad_(False)
+
+            load_module(self.model.modality_heads, module_name="heads",
+                        checkpoint_dir=lora_checkpoint_dir)
+            for modality_head in self.model.modality_heads.children():
+                modality_head.requires_grad_(False)
+                final_layer = list(modality_head.children())[-1]
+                final_layer.requires_grad_(True)
 
     def configure_optimizers(self):
         optimizer = optim.AdamW(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay, 
@@ -165,6 +183,10 @@ class ImageBindTrain(L.LightningModule):
                         checkpoint_dir=self.hparams.lora_checkpoint_dir)
             save_module(self.model.modality_heads, module_name="heads",
                         checkpoint_dir=self.hparams.lora_checkpoint_dir)
+        elif self.hparams.linear_probing:
+            # Save postprocessors & heads
+            save_module(self.model.modality_heads, module_name="heads",
+                        checkpoint_dir=self.hparams.lora_checkpoint_dir)
 
 
 def parse_args():
@@ -204,17 +226,21 @@ def parse_args():
     parser.add_argument("--lora_layer_idxs", nargs="+", type=int,
                         help="Layer indices to apply LoRA")
     parser.add_argument("--lora_layer_idxs_vision", nargs="+", type=int,
-                        help="Layer indices to apply LoRA for vision modality. Overrides lora_layer_idxs if specified.")
+                        help="Layer indices to apply LoRA for vision modality. Overrides lora_layer_idxs if specified")
     parser.add_argument("--lora_layer_idxs_text", nargs="+", type=int,
-                        help="Layer indices to apply LoRA for text modality. Overrides lora_layer_idxs if specified.")
+                        help="Layer indices to apply LoRA for text modality. Overrides lora_layer_idxs if specified")
     parser.add_argument("--lora_layer_idxs_audio", nargs="+", type=int,
-                        help="Layer indices to apply LoRA for audio modality. Overrides lora_layer_idxs if specified.")
+                        help="Layer indices to apply LoRA for audio modality. Overrides lora_layer_idxs if specified")
     parser.add_argument("--lora_layer_idxs_thermal", nargs="+", type=int,
-                        help="Layer indices to apply LoRA for thermal modality. Overrides lora_layer_idxs if specified.")
+                        help="Layer indices to apply LoRA for thermal modality. Overrides lora_layer_idxs if specified")
     parser.add_argument("--lora_layer_idxs_depth", nargs="+", type=int,
-                        help="Layer indices to apply LoRA for depth modality. Overrides lora_layer_idxs if specified.")
+                        help="Layer indices to apply LoRA for depth modality. Overrides lora_layer_idxs if specified")
     parser.add_argument("--lora_layer_idxs_imu", nargs="+", type=int,
-                        help="Layer indices to apply LoRA for imu modality. Overrides lora_layer_idxs if specified.")
+                        help="Layer indices to apply LoRA for imu modality. Overrides lora_layer_idxs if specified")
+
+    parser.add_argument("--linear_probing", action="store_true",
+                        help="Freeze model and train the last layers of the head for each modality.")
+
     return parser.parse_args()
 
 
@@ -350,7 +376,8 @@ if __name__ == "__main__":
                            num_workers=args.num_workers, self_contrast=args.self_contrast,
                            lora=args.lora, lora_rank=args.lora_rank, lora_checkpoint_dir=args.lora_checkpoint_dir,
                            lora_layer_idxs=lora_layer_idxs if lora_layer_idxs else None,
-                           lora_modality_names=lora_modality_names if lora_modality_names else None)
+                           lora_modality_names=lora_modality_names if lora_modality_names else None,
+                           linear_probing=args.linear_probing)
 
     if args.full_model_checkpointing:
         checkpointing = {"enable_checkpointing": args.full_model_checkpointing,

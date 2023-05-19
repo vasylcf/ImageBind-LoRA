@@ -27,10 +27,12 @@ change `lora=True` within the script. To try the original ImageBind model, set `
 **example explanation**: The `dreambooth` dataset contains the classes dog3, dog5, and dog8. Since the original 
 ImageBind model was not trained on some arbitrary number-naming scheme, it matches the wrong images with dog8 and dog5. 
 However, the LoRA fine-tuned model separates the 3 dog classes, indicating it was successfully adapted
-to the toy dataset without destroying the ImageBind embeddings. If you are not concerned about maintaining the original 
-embeddings and just aim at getting a stronger association with the fine-tuned dataset, set `load_head_post_proc_finetuned=True`. This 
-loads the fine-tuned heads and postprocessors, and you won't need to manually adjust the `lora_factor`. However, the original
-associations will not be maintained, e.g., it now associates the text `bird` with a `dog`
+to the toy dataset. This approach distorts the pretrained features of ImageBind. To maintain the original embeddings,
+we propose experimenting with the two-step fine-tuning approach described in 
+[this paper](https://openreview.net/pdf?id=UYneFzXSJWh): linear-probing followed by full model (or LoRA) fine-tuning.
+ImageBind-LoRA support linear probing by passing the `--linear_probing` argument to `train.py`. Note that the training process
+should then be split into two stages, passing `--linear_probing` in an initial training session, followed by `--lora` on training
+completion.
 
 ## Fine-tuning
 
@@ -87,12 +89,17 @@ We set the train arguments as follows:
 #       export COMET_WORKSPACE=<MY_WORKSPACE_NAME>
 #       export COMET_PROJECT_NAME=Imagebind-lora
 
-python train.py --batch_size 12 --max_epochs 500 --num_workers 4 \
+python train.py --batch_size 12 --max_epochs 550 --num_workers 4 \
                 --lora --lora_modality_names vision text \
                 --lora_layer_idxs 1 2 3 4 5 6 7 8 \
                 --self_contrast --datasets dreambooth \
                 --device cuda:0 --headless --loggers comet
 ```
+
+**Note**: To perform linear probing (optimizing the last layer of each modality's head only), maintain all arguments, 
+replacing `--lora` with `--linear_probing` (Both cannot be set in the same run). 
+On running `--lora` in the next training session/s, the checkpoint of the heads is automatically loaded and saved,
+assuming the `--lora_checkpoint_dir` remains the same.
 
 
 # ImageBind: One Embedding Space To Bind Them All

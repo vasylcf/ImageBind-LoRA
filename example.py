@@ -11,10 +11,10 @@ logging.basicConfig(level=logging.INFO)
 
 lora = True
 device = "cuda:0" if torch.cuda.is_available() else "cpu"  # "cpu"
-load_head_post_proc_finetuned = False
+load_head_post_proc_finetuned = True
 
 if lora and not load_head_post_proc_finetuned:
-    # Adjust lora_factor to the `max batch size used during training / temperature` to compensate missing norm
+    # Hack: adjust lora_factor to the `max batch size used during training / temperature` to compensate missing norm
     lora_factor = 12 / 0.07
 else:
     # This assumes proper loading of all params but results in shift from original dist in case of LoRA
@@ -47,14 +47,14 @@ if lora:
 
     # Load LoRA params if found
     LoRA.load_lora_modality_trunks(model.modality_trunks,
-                                   checkpoint_dir="./.checkpoints/lora", postfix="_dreambooth_last")
+                                   checkpoint_dir="./.checkpoints/lora/550_epochs", postfix="_dreambooth_last")
 
     if load_head_post_proc_finetuned:
         # Load postprocessors & heads
         load_module(model.modality_postprocessors, module_name="postprocessors",
-                    checkpoint_dir="./.checkpoints/lora", postfix="_dreambooth_last")
+                    checkpoint_dir="./.checkpoints/lora/550_epochs", postfix="_dreambooth_last")
         load_module(model.modality_heads, module_name="heads",
-                    checkpoint_dir="./.checkpoints/lora", postfix="_dreambooth_last")
+                    checkpoint_dir="./.checkpoints/lora/550_epochs", postfix="_dreambooth_last")
 
 model.eval()
 model.to(device)
