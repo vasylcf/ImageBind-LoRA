@@ -1,8 +1,8 @@
 # Based on PyTorch Lightning Tutorial 13 -
 # SSL : https://lightning.ai/docs/pytorch/stable/notebooks/course_UvA-DL/13-contrastive-learning.html
 # Modified by Fares Abawi (@fabawi).
-import os
 import logging
+import os
 import argparse
 
 try:
@@ -34,7 +34,7 @@ from torchvision import transforms
 
 from models import imagebind_model
 from models import lora as LoRA
-from models.imagebind_model import ModalityType
+from models.imagebind_model import ModalityType, load_module, save_module
 
 logging.basicConfig(level=logging.INFO)
 
@@ -61,7 +61,7 @@ class ImageBindTrain(L.LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
-        # ImageBind model (load pretrained model)
+        # Load full pretrained ImageBind model
         self.model = imagebind_model.imagebind_huge(pretrained=True)
         if lora:
             for modality_preprocessor in self.model.modality_preprocessors.children():
@@ -71,9 +71,15 @@ class ImageBindTrain(L.LightningModule):
                 modality_trunk.requires_grad_(False)
                 
             self.model.modality_trunks.update(LoRA.apply_lora_modality_trunks(self.model.modality_trunks, rank=lora_rank,
-                                                                              layer_idxs=self.hparams.lora_layer_idxs,
-                                                                              modality_names=self.hparams.lora_modality_names))
+                                                                              layer_idxs=lora_layer_idxs,
+                                                                              modality_names=lora_modality_names))
             LoRA.load_lora_modality_trunks(self.model.modality_trunks, checkpoint_dir=lora_checkpoint_dir)
+
+            # Load postprocessors & heads
+            load_module(self.model.modality_postprocessors, module_name="postprocessors",
+                        checkpoint_dir=lora_checkpoint_dir)
+            load_module(self.model.modality_heads, module_name="heads",
+                        checkpoint_dir=lora_checkpoint_dir)
 
     def configure_optimizers(self):
         optimizer = optim.AdamW(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay, 
@@ -124,7 +130,8 @@ class ImageBindTrain(L.LightningModule):
                 dual_nll += nll
                 dual_nll /= 2
             # Logging loss
-            self.log(mode + "_loss_" + contrast[feats_idx], nll, prog_bar=True, on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH)
+            self.log(mode + "_loss_" + contrast[feats_idx], nll, prog_bar=True,
+                     on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH, batch_size=self.hparams.batch_size)
             # Get ranking position of positive example
             comb_sim = torch.cat(
                 [cos_sim[pos_mask][:, None], cos_sim.masked_fill(pos_mask, -9e15)],  # First position positive example
@@ -132,11 +139,15 @@ class ImageBindTrain(L.LightningModule):
             )
             sim_argsort = comb_sim.argsort(dim=-1, descending=True).argmin(dim=-1)
             # Logging ranking metrics
-            self.log(mode + "_acc_top1", (sim_argsort == 0).float().mean(), prog_bar=True, on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH)
-            self.log(mode + "_acc_top5", (sim_argsort < 5).float().mean(), prog_bar=True,  on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH)
-            self.log(mode + "_acc_mean_pos", 1 + sim_argsort.float().mean(), prog_bar=True,  on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH)
+            self.log(mode + "_acc_top1", (sim_argsort == 0).float().mean(), prog_bar=True,
+                     on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH, batch_size=self.hparams.batch_size)
+            self.log(mode + "_acc_top5", (sim_argsort < 5).float().mean(), prog_bar=True,
+                     on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH, batch_size=self.hparams.batch_size)
+            self.log(mode + "_acc_mean_pos", 1 + sim_argsort.float().mean(), prog_bar=True,
+                     on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH, batch_size=self.hparams.batch_size)
 
-        self.log(mode + "_loss", dual_nll, prog_bar=True, on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH)
+        self.log(mode + "_loss", dual_nll, prog_bar=True,
+                 on_step=LOG_ON_STEP, on_epoch=LOG_ON_EPOCH, batch_size=self.hparams.batch_size)
         return dual_nll
 
     def training_step(self, batch, batch_idx):
@@ -149,7 +160,12 @@ class ImageBindTrain(L.LightningModule):
         if self.hparams.lora:
             # Save LoRA checkpoint
             LoRA.save_lora_modality_trunks(self.model.modality_trunks, checkpoint_dir=self.hparams.lora_checkpoint_dir)
-            # TODO (fabawi): Store head and postprocessor layers independently when running LoRA
+            # Save postprocessors & heads
+            save_module(self.model.modality_postprocessors, module_name="postprocessors",
+                        checkpoint_dir=self.hparams.lora_checkpoint_dir)
+            save_module(self.model.modality_heads, module_name="heads",
+                        checkpoint_dir=self.hparams.lora_checkpoint_dir)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train the ImageBind model with PyTorch Lightning and LoRA.")
@@ -344,7 +360,8 @@ if __name__ == "__main__":
     else:
         checkpointing = {"enable_checkpointing": args.full_model_checkpointing,}
 
-    trainer = Trainer(accelerator="gpu" if "cuda" in device_name else "cpu", devices=1 if ":" not in device_name else [int(device_name.split(":")[1])], deterministic=True,
+    trainer = Trainer(accelerator="gpu" if "cuda" in device_name else "cpu",
+                      devices=1 if ":" not in device_name else [int(device_name.split(":")[1])], deterministic=True,
                       max_epochs=args.max_epochs, gradient_clip_val=args.gradient_clip_val,
                       logger=loggers if loggers else None, **checkpointing)
 

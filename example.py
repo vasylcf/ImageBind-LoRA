@@ -3,7 +3,7 @@ import torch
 import data
 
 from models import imagebind_model
-from models.imagebind_model import ModalityType
+from models.imagebind_model import ModalityType, load_module
 from models import lora as LoRA
 
 logging.basicConfig(level=logging.INFO)
@@ -41,8 +41,14 @@ if lora:
                                         modality_names=[ModalityType.TEXT, ModalityType.VISION]))
 
     # Load LoRA params if found
-    LoRA.load_lora_modality_trunks(model.modality_trunks, checkpoint_dir="./.checkpoints/lora", postfix="-dreambooth_last")
+    LoRA.load_lora_modality_trunks(model.modality_trunks,
+                                   checkpoint_dir="./.checkpoints/lora", postfix="-dreambooth_last")
 
+    # Load postprocessors & heads
+    load_module(model.modality_postprocessors, module_name="postprocessors",
+                checkpoint_dir="./.checkpoints/lora", postfix="-dreambooth_last")
+    load_module(model.modality_heads, module_name="heads",
+                checkpoint_dir="./.checkpoints/lora", postfix="-dreambooth_last")
 
 model.eval()
 model.to(device)
