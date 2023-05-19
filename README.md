@@ -29,7 +29,7 @@ ImageBind model was not trained on some arbitrary number-naming scheme, it match
 However, the LoRA fine-tuned model separates the 3 dog classes, indicating it was successfully adapted
 to the toy dataset. This approach distorts the pretrained features of ImageBind. To maintain the original embeddings,
 we propose experimenting with the two-step fine-tuning approach described in 
-[this paper](https://openreview.net/pdf?id=UYneFzXSJWh): linear-probing followed by full model (or LoRA) fine-tuning.
+[this paper](https://openreview.net/pdf?id=UYneFzXSJWh): linear probing followed by full model (or LoRA) fine-tuning.
 ImageBind-LoRA support linear probing by passing the `--linear_probing` argument to `train.py`. Note that the training process
 should then be split into two stages, passing `--linear_probing` in an initial training session, followed by `--lora` on training
 completion.
@@ -63,8 +63,8 @@ To train on GPU (currently runs on a single GPU, but multi-GPU training will be 
 --device cuda:0
 ```
 
-The LoRA models used in example.py 
-(checkpoints found in `.checkpoints/lora` with postix `-dreambooth_last.safetensors`), 
+The LoRA models used in `example.py` 
+(checkpoints found in `.checkpoints/lora/550_epochs/` with postix `_dreambooth_last.safetensors`), 
 was trained for ~2 hours on a 3080Ti with 12 GB VRAM, consuming 5.66 GB VRAM and ~4 GB RAM. The model converged to a similar state in less than 30 mins.
 
 INFO:
