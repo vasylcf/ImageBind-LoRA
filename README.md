@@ -1,6 +1,6 @@
 # Unofficial ImageBind Fine-tuning with LoRA
 
-This is an unofficial implementation of the ImageBind Trainer with [LoRA]() fine-tuning. To adapt this repository to your own dataset, 
+This is an unofficial implementation of the ImageBind Trainer with [LoRA](https://openreview.net/forum?id=nZeVKeeFYf9) fine-tuning. To adapt this repository to your own dataset, 
 checkout `train.py` and replace the `dreambooth` with your own.
 
 Make sure to clone this repository recursively to include the submodules:
@@ -27,7 +27,10 @@ change `lora=True` within the script. To try the original ImageBind model, set `
 **example explanation**: The `dreambooth` dataset contains the classes dog3, dog5, and dog8. Since the original 
 ImageBind model was not trained on some arbitrary number-naming scheme, it matches the wrong images with dog8 and dog5. 
 However, the LoRA fine-tuned model separates the 3 dog classes, indicating it was successfully adapted
-to the toy dataset without destroying the ImageBind embeddings.
+to the toy dataset without destroying the ImageBind embeddings. If you are not concerned about maintaining the original 
+embeddings and just aim at getting a stronger association with the fine-tuned dataset, set `load_head_post_proc_finetuned=True`. This 
+loads the fine-tuned heads and postprocessors, and you won't need to manually adjust the `lora_factor`. However, the original
+associations will not be maintained, e.g., it now associates the text `bird` with a `dog`
 
 ## Fine-tuning
 

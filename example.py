@@ -8,12 +8,17 @@ from models import lora as LoRA
 
 logging.basicConfig(level=logging.INFO)
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
-# TODO (fabawi): This should be adjusted for during training or on saving the weights.
-#  For now, we just set it to the max batch size we used during training / temperature.
-lora_factor = 12 / 0.07
 
 lora = True
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+load_head_post_proc_finetuned = False
+
+if lora and not load_head_post_proc_finetuned:
+    # Adjust lora_factor to the `max batch size used during training / temperature` to compensate missing norm
+    lora_factor = 12 / 0.07
+else:
+    # This assumes proper loading of all params but results in shift from original dist in case of LoRA
+    lora_factor = 1
 
 text_list=["bird",
            "car",
@@ -42,13 +47,14 @@ if lora:
 
     # Load LoRA params if found
     LoRA.load_lora_modality_trunks(model.modality_trunks,
-                                   checkpoint_dir="./.checkpoints/lora", postfix="-dreambooth_last")
+                                   checkpoint_dir="./.checkpoints/lora", postfix="-dbooth_last")
 
-    # Load postprocessors & heads
-    load_module(model.modality_postprocessors, module_name="postprocessors",
-                checkpoint_dir="./.checkpoints/lora", postfix="-dreambooth_last")
-    load_module(model.modality_heads, module_name="heads",
-                checkpoint_dir="./.checkpoints/lora", postfix="-dreambooth_last")
+    if load_head_post_proc_finetuned:
+        # Load postprocessors & heads
+        load_module(model.modality_postprocessors, module_name="postprocessors",
+                    checkpoint_dir="./.checkpoints/lora", postfix="-dreambooth_last")
+        load_module(model.modality_heads, module_name="heads",
+                    checkpoint_dir="./.checkpoints/lora", postfix="-dreambooth_last")
 
 model.eval()
 model.to(device)
