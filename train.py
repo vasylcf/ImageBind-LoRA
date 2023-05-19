@@ -64,10 +64,14 @@ class ImageBindTrain(L.LightningModule):
         # ImageBind model (load pretrained model)
         self.model = imagebind_model.imagebind_huge(pretrained=True)
         if lora:
+            for modality_preprocessor in self.model.modality_preprocessors.children():
+                modality_preprocessor.requires_grad_(False)
+            
             self.model.modality_trunks.update(LoRA.apply_lora_modality_trunks(self.model.modality_trunks, rank=lora_rank,
                                                                               layer_idxs=self.hparams.lora_layer_idxs,
                                                                               modality_names=self.hparams.lora_modality_names))
             LoRA.load_lora_modality_trunks(self.model.modality_trunks, checkpoint_dir=lora_checkpoint_dir)
+            # TODO (fabawi): create LoRA layers for modality_heads and modality_postprocessors, otherwise, you'll have to learn them as well + store full model checkpoints
 
     def configure_optimizers(self):
         optimizer = optim.AdamW(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay, 
