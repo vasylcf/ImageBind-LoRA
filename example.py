@@ -31,7 +31,7 @@ image_paths=[".assets/bird_image.jpg",
              ".assets/dog3.jpg",
              ".assets/dog5.jpg",
              ".assets/dog8.jpg",
-             ".assets/grey_sloth_plushie.jpg",]
+             ".assets/grey_sloth_plushie.jpg"]
 audio_paths=[".assets/bird_audio.wav",
              ".assets/car_audio.wav",
              ".assets/dog_audio.wav"]
