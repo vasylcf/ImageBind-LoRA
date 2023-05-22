@@ -11,6 +11,10 @@ fvcore
 decord==0.6.0
 iopath
 numpy
+matplotlib
+types-regex
+mayavi
+cartopy
 safetensors
 lightning==2.0.2
 scikit-learn
