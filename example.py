@@ -10,8 +10,13 @@ logging.basicConfig(level=logging.INFO)
 
 
 lora = True
-device = "cuda:0" if torch.cuda.is_available() else "cpu"  # "cpu"
+linear_probing = False
+device = "cpu"  # "cuda:0" if torch.cuda.is_available() else "cpu"
 load_head_post_proc_finetuned = True
+
+assert not all([linear_probing, lora]), \
+            "Linear probing is a subset of LoRA training procedure for ImageBind. " \
+            "Cannot set both linear_probing=True and lora=True. "
 
 if lora and not load_head_post_proc_finetuned:
     # Hack: adjust lora_factor to the `max batch size used during training / temperature` to compensate missing norm
@@ -47,14 +52,18 @@ if lora:
 
     # Load LoRA params if found
     LoRA.load_lora_modality_trunks(model.modality_trunks,
-                                   checkpoint_dir="./.checkpoints/lora/550_epochs", postfix="_dreambooth_last")
+                                   checkpoint_dir=".checkpoints/lora/550_epochs_lora", postfix="_dreambooth_last")
 
     if load_head_post_proc_finetuned:
         # Load postprocessors & heads
         load_module(model.modality_postprocessors, module_name="postprocessors",
-                    checkpoint_dir="./.checkpoints/lora/550_epochs", postfix="_dreambooth_last")
+                    checkpoint_dir=".checkpoints/lora/550_epochs_lora", postfix="_dreambooth_last")
         load_module(model.modality_heads, module_name="heads",
-                    checkpoint_dir="./.checkpoints/lora/550_epochs", postfix="_dreambooth_last")
+                    checkpoint_dir=".checkpoints/lora/550_epochs_lora", postfix="_dreambooth_last")
+elif linear_probing:
+    # Load heads
+    load_module(model.modality_heads, module_name="heads",
+                checkpoint_dir="./.checkpoints/lora/500_epochs_lp", postfix="_dreambooth_last")
 
 model.eval()
 model.to(device)

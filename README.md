@@ -32,7 +32,10 @@ we propose experimenting with the two-step fine-tuning approach described in
 [this paper](https://openreview.net/pdf?id=UYneFzXSJWh): linear probing followed by full model (or LoRA) fine-tuning.
 ImageBind-LoRA support linear probing by passing the `--linear_probing` argument to `train.py`. Note that the training process
 should then be split into two stages, passing `--linear_probing` in an initial training session, followed by `--lora` on training
-completion.
+completion. With `linear_probing`, no distortion to original pretrained features is observed. All classes are accurately predicted 
+when setting `lora=False` and `linear_probing=True` in `example.py`. Given that the example is running on a minimal toy dataset (`dreambooth`)
+and that the samples belong to a different distribution than the pretrained samples of ImageBind, we observe better outcomes than fine-tuning 
+with LoRA. This would most likely not be the case when fine-tuning on larger datasets.
 
 ## Fine-tuning
 
