@@ -19,7 +19,7 @@ try:
 except ImportError:
     plt = None
     logging.warning("Matplotlib not installed. This is not needed if you run this script as --headless")
-    
+
 import lightning as L
 from lightning.pytorch import Trainer, seed_everything
 from lightning.pytorch.callbacks import ModelCheckpoint
@@ -36,7 +36,7 @@ from models import imagebind_model
 from models import lora as LoRA
 from models.imagebind_model import ModalityType, load_module, save_module
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, force=True)
 
 # Logging settings
 LOG_ON_STEP = True
@@ -60,7 +60,7 @@ class ImageBindTrain(L.LightningModule):
                  linear_probing=False
                  ):
         super().__init__()
-        assert not all([linear_probing, lora]), \
+        assert not (linear_probing and lora), \
             "Linear probing is a subset of LoRA training procedure for ImageBind. " \
             "Cannot set both linear_probing=True and lora=True. " \
             "Linear probing stores params in lora_checkpoint_dir"

@@ -522,7 +522,7 @@ def load_module(module_dict: nn.ModuleDict, module_name: str = "",
                 extension: str = "pth"):
     try:
         module_dict.load_state_dict(torch.load(
-                   os.path.join(checkpoint_dir, f"imagebind-{module_name}{postfix}.{extension}")))
+                   os.path.join(checkpoint_dir, f"imagebind-{module_name}{postfix}.{extension}")), strict=False)
         logging.info(f"Loaded parameters for module {module_name} from {checkpoint_dir}.")
     except FileNotFoundError:
         logging.warning(f"Could not load module parameters for {module_name} from {checkpoint_dir}.")

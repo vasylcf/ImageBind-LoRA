@@ -1,8 +1,7 @@
 # Sheng Wang at Feb 22 2023
 # Based on LoRA-ViT: https://github.com/JamesQFreeman/LoRA-ViT/blob/main/lora.py
 # Modified by Fares Abawi (@fabawi).
-# We use this stripped-down version of LoRA for rapid exploration but will be replaced with loralib soon
-# TODO (fabawi): Implement using loralib -> https://github.com/microsoft/LoRA/blob/main/loralib/layers.py
+
 import logging
 import os
 import math
