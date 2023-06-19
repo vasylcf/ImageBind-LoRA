@@ -5,7 +5,7 @@
 import logging
 import os
 import math
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
 from types import SimpleNamespace
 
 import torch
@@ -63,9 +63,19 @@ class _LoRALayer(nn.Module):
         self.w_a = w_a
         self.w_b = w_b
 
-    def forward(self, tokens: torch.Tensor, **kwargs):
-        x = self.w(tokens) + self.w_b(self.w_a(tokens))
+    def forward(self, x: torch.Tensor, attn_mask: torch.Tensor, **kwargs):
+
+        x = self.w(x, attn_mask=attn_mask) + self.w_b(self.w_a(x))
         return x
+
+
+class _LoRAMultiheadAttention(nn.MultiheadAttention):
+    def forward(self, query: Tensor, key: Tensor, value: Tensor, key_padding_mask: Optional[Tensor] = None,
+                need_weights: bool = True, attn_mask: Optional[Tensor] = None,
+                average_attn_weights: bool = True) -> Tuple[Tensor, Optional[Tensor]]:
+        attention = super().forward(query, key, value, key_padding_mask, need_weights, attn_mask)
+
+        return attention
 
 
 class LoRA_SimpleTransformer(nn.Module):
@@ -88,8 +98,8 @@ class LoRA_SimpleTransformer(nn.Module):
         super(LoRA_SimpleTransformer, self).__init__()
 
         assert rank > 0
-        base_dim = transformer_model.blocks[0].attn.in_proj_bias.size()[0]
-        dim = base_dim
+        self.base_dim = transformer_model.blocks[0].attn.in_proj_bias.size()[0]//3
+        dim = self.base_dim
         if lora_layer_idxs is not None:
             self.lora_layer_idxs = lora_layer_idxs
         else:
@@ -107,18 +117,13 @@ class LoRA_SimpleTransformer(nn.Module):
             # If we only want few lora layer instead of all
             if t_layer_idx not in self.lora_layer_idxs:
                 continue
-            w_q_linear = blk.attn.q_proj_weight
-            w_v_linear = blk.attn.v_proj_weight
-            w_a_linear_q = nn.Linear(dim, rank, bias=False)
-            w_b_linear_q = nn.Linear(rank, dim, bias=False)
-            w_a_linear_v = nn.Linear(dim, rank, bias=False)
-            w_b_linear_v = nn.Linear(rank, dim, bias=False)
-            self.w_As.append(w_a_linear_q)
-            self.w_Bs.append(w_b_linear_q)
-            self.w_As.append(w_a_linear_v)
-            self.w_Bs.append(w_b_linear_v)
-            blk.attn.proj_q = _LoRALayer(w_q_linear, w_a_linear_q, w_b_linear_q)
-            blk.attn.proj_v = _LoRALayer(w_v_linear, w_a_linear_v, w_b_linear_v)
+            w_a_linear_qkv = nn.Linear(dim, rank, bias=False)
+            w_b_linear_qkv = nn.Linear(rank, dim, bias=False)
+            self.w_As.append(w_a_linear_qkv)
+            self.w_Bs.append(w_b_linear_qkv)
+            blk.prev_attn = blk.attn
+            blk.attn = _LoRALayer(blk.prev_attn, w_a_linear_qkv, w_b_linear_qkv)
+
         if self.training:
             self.reset_parameters()
         self.lora_model = transformer_model
@@ -165,4 +170,5 @@ class LoRA_SimpleTransformer(nn.Module):
 
     def forward(self, tokens: torch.Tensor, **kwargs) -> Tensor:
         return self.lora_model(tokens)
+
 
