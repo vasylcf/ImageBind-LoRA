@@ -29,7 +29,10 @@ ImageBind model was not trained on some arbitrary number-naming scheme, it match
 However, the LoRA fine-tuned model separates the 3 dog classes, indicating it was successfully adapted
 to the toy dataset. This approach distorts the pretrained features of ImageBind. To maintain the original embeddings,
 we propose experimenting with the two-step fine-tuning approach described in 
-[this paper](https://openreview.net/pdf?id=UYneFzXSJWh): linear probing followed by full model (or LoRA) fine-tuning.
+[this paper](https://openreview.net/pdf?id=UYneFzXSJWh): linear probing followed by full model fine-tuning. 
+To avoid diverging too far from the objective: fine-tuning the multimodal representation; We limit those two steps to fine-tuning the ImagBind model.
+In our implementation, linear probing is analogous to fine-tuning the last layer, whereas full model fine-tuning is analogous to LoRA fine-tuning 
+(Although tuning the full model is still possible by not setting the `--lora` argument). 
 ImageBind-LoRA support linear probing by passing the `--linear_probing` argument to `train.py`. Note that the training process
 should then be split into two stages, passing `--linear_probing` in an initial training session, followed by `--lora` on training
 completion. With `linear_probing`, no distortion to original pretrained features is observed. All classes are accurately predicted 
