@@ -47,7 +47,6 @@ To train the model, run:
 ```bash
 python train.py --batch_size 12 --max_epochs 500 \
         --lora --lora_modality_names vision text \
-        --lora_layer_idxs 1 2 3 4 5 6 7 8 \
         --self_contrast --datasets dreambooth
 ```
 
@@ -97,7 +96,6 @@ We set the train arguments as follows:
 
 python train.py --batch_size 12 --max_epochs 550 --num_workers 4 \
                 --lora --lora_modality_names vision text \
-                --lora_layer_idxs 1 2 3 4 5 6 7 8 \
                 --self_contrast --datasets dreambooth \
                 --device cuda:0 --headless --loggers comet
 ```
