@@ -69,15 +69,6 @@ class _LoRALayer(nn.Module):
         return x
 
 
-class _LoRAMultiheadAttention(nn.MultiheadAttention):
-    def forward(self, query: Tensor, key: Tensor, value: Tensor, key_padding_mask: Optional[Tensor] = None,
-                need_weights: bool = True, attn_mask: Optional[Tensor] = None,
-                average_attn_weights: bool = True) -> Tuple[Tensor, Optional[Tensor]]:
-        attention = super().forward(query, key, value, key_padding_mask, need_weights, attn_mask)
-
-        return attention
-
-
 class LoRA_SimpleTransformer(nn.Module):
     """Applies low-rank adaptation to simple transformer with pytorch multihead attention.
 
