@@ -46,8 +46,8 @@ model = imagebind_model.imagebind_huge(pretrained=True)
 if lora:
     model.modality_trunks.update(
         LoRA.apply_lora_modality_trunks(model.modality_trunks, rank=4,
-                                        layer_idxs={ModalityType.TEXT: [0, 1, 2, 3, 4, 5, 6, 7, 8],
-                                                    ModalityType.VISION: [0, 1, 2, 3, 4, 5, 6, 7, 8]},
+                                        # layer_idxs={ModalityType.TEXT: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+                                        #             ModalityType.VISION: [0, 1, 2, 3, 4, 5, 6, 7, 8]},
                                         modality_names=[ModalityType.TEXT, ModalityType.VISION]))
 
     # Load LoRA params if found
