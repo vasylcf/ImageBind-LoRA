@@ -35,7 +35,7 @@ def load_and_transform_video_data(
     video_paths,
     device,
     clip_duration=0.5,
-    clips_per_video=8,
+    clips_per_video=7,
     frames_per_clip=1,
     crop_size=224,
     center_crop=True,
@@ -113,7 +113,7 @@ def load_imu(imu_path, device):
 class AvatarDataset(Dataset):
     def __init__(self, root_dir: str, csv_path: str = None,
                  transform: Optional[Callable] = None,
-                 split: str = 'train', train_size: float = 0.8, random_seed: int = 42, device: str = 'cpu'):
+                 split: str = 'train', train_size: float = 0.95, random_seed: int = 42, device: str = 'cpu'):
         self.root_dir = root_dir
         # self.ds = pd.read_csv(csv_path)
         # print(f'avatar csv shape: {self.ds.shape}')
@@ -146,7 +146,7 @@ class AvatarDataset(Dataset):
         elif split == 'test':
             self.paths = test_paths
         else:
-            raise ValueError(f"Invalid split argument. Expected 'train' or 'test', got {split}")
+            print(f'Without train/test splitting')
 
         print(f'{split}: Clips in dataset {len(self.paths)}')
 

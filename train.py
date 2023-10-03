@@ -244,7 +244,8 @@ def parse_args():
     return parser.parse_args()
 
 
-# python train.py --batch_size 4 --max_epochs 500  --lora --lora_modality_names vision imu --datasets avatar --device cuda:0 --loggers tensorboard --num_workers 8
+# python train.py --batch_size 4 --max_epochs 10  --lora --lora_modality_names vision imu --datasets avatar --device cuda:0 --loggers tensorboard --num_workers 8
+
 if __name__ == "__main__":
     args = parse_args()
 

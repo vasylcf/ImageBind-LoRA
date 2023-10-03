@@ -6,4 +6,5 @@ avatar_assets
 .checkpoints
 .logs
 *.csv
+*.pickle
 projector.py
