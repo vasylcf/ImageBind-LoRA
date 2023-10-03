@@ -111,11 +111,11 @@ class ImageBindTrain(L.LightningModule):
         data_a, class_a, data_b, class_b = batch
 
         # class_a is always "vision" according to ImageBind
-        feats_a = [self.model({class_a[0]: data_a_i}) for data_a_i in data_a]
-        feats_a_tensor = torch.cat([list(dict_.values())[0] for dict_ in feats_a], dim=0)
+        feats_a = self.model({class_a[0]: data_a})
+        feats_a_tensor = feats_a['vision']
         # class_b could be any modality
-        feats_b = [self.model({class_b[idx]: data_b_i}) for idx, data_b_i in enumerate(data_b)]
-        feats_b_tensor = torch.cat([list(dict_.values())[0] for dict_ in feats_b], dim=0)
+        feats_b = self.model({class_b[0]: data_b})
+        feats_b_tensor = feats_b['imu']
 
         if self.hparams.self_contrast:
             feats_a_b_tensor = torch.cat([feats_a_tensor.chunk(2)[0], feats_b_tensor], dim=0)
@@ -195,7 +195,7 @@ def parse_args():
     parser.add_argument("--device", type=str, default="cpu", help="Device to use for training ('cpu' or 'cuda')")
     parser.add_argument("--datasets_dir", type=str, default="./.datasets",
                         help="Directory containing the datasets")
-    parser.add_argument("--datasets", type=str, nargs="+", default=["dreambooth"], choices=["dreambooth"],
+    parser.add_argument("--datasets", type=str, nargs="+", default=["dreambooth"], choices=["dreambooth", "football", "avatar"],
                         help="Datasets to use for training and validation")
     parser.add_argument("--full_model_checkpoint_dir", type=str, default="./.checkpoints/full",
                         help="Directory to save the full model checkpoints")
@@ -244,6 +244,7 @@ def parse_args():
     return parser.parse_args()
 
 
+# python train.py --batch_size 4 --max_epochs 500  --lora --lora_modality_names vision imu --datasets avatar --device cuda:0 --loggers tensorboard --num_workers 8
 if __name__ == "__main__":
     args = parse_args()
 
@@ -316,6 +317,23 @@ if __name__ == "__main__":
             root_dir=os.path.join(args.datasets_dir, "dreambooth", "dataset"), split="test",
             transform=ContrastiveTransformations(contrast_transforms,
                                                  n_views=2 if args.self_contrast else 1)))
+    elif "football" in args.datasets:
+        from datasets.football import FootballDataset
+        train_datasets.append(FootballDataset(
+            root_dir=os.path.join(args.datasets_dir, "RBLeipzig-WerderBremen_14052023_1T"), split="train",
+            transform=None))
+        test_datasets.append(FootballDataset(
+            root_dir=os.path.join(args.datasets_dir, "RBLeipzig-WerderBremen_14052023_1T"), split="test",
+            transform=None))
+
+    elif "avatar" in args.datasets:
+        from datasets.avatar import AvatarDataset
+        train_datasets.append(AvatarDataset(
+            root_dir=os.path.join(args.datasets_dir, "avatar"), csv_path='avatar_tune_ds.csv', split="train",
+            transform=None))
+        test_datasets.append(AvatarDataset(
+            root_dir=os.path.join(args.datasets_dir, "avatar"), csv_path='avatar_tune_ds.csv', split="test",
+            transform=None))
 
     if len(args.datasets) == 1:
         train_dataset = train_datasets[0]
@@ -342,18 +360,18 @@ if __name__ == "__main__":
     )
 
     # Visualize some examples
-    if not args.headless:
-        NUM_IMAGES = args.batch_size
-        imgs = [torch.stack(train_dataset[idx][0], dim=0) for idx in range(NUM_IMAGES)]
-        imgs = torch.stack(imgs, dim=0)
-        img_grid = torchvision.utils.make_grid(imgs.reshape(-1, *imgs.shape[2:]), nrow=6, normalize=True, pad_value=0.9)
-        img_grid = img_grid.permute(1, 2, 0)
-        plt.figure(figsize=(10, 5))
-        plt.title(f"Augmented image examples of the available datasets: {args.datasets}")
-        plt.imshow(img_grid.cpu())
-        plt.axis("off")
-        plt.show()
-        plt.close()
+    # if not args.headless:
+    #     NUM_IMAGES = args.batch_size
+    #     imgs = [torch.stack(train_dataset[idx][0], dim=0) for idx in range(NUM_IMAGES)]
+    #     imgs = torch.stack(imgs, dim=0)
+    #     img_grid = torchvision.utils.make_grid(imgs.reshape(-1, *imgs.shape[2:]), nrow=6, normalize=True, pad_value=0.9)
+    #     img_grid = img_grid.permute(1, 2, 0)
+    #     plt.figure(figsize=(10, 5))
+    #     plt.title(f"Augmented image examples of the available datasets: {args.datasets}")
+    #     plt.imshow(img_grid.cpu())
+    #     plt.axis("off")
+    #     plt.show()
+    #     plt.close()
 
     # Parse indices of layers to apply LoRA
     lora_layer_idxs = {}
@@ -373,7 +391,7 @@ if __name__ == "__main__":
     model = ImageBindTrain(max_epochs=args.max_epochs, batch_size=args.batch_size, lr=args.lr,
                            weight_decay=args.weight_decay, momentum_betas=args.momentum_betas,
                            temperature=args.temperature,
-                           num_workers=args.num_workers, self_contrast=args.self_contrast,
+                           num_workers=args.num_workers, self_contrast=False,
                            lora=args.lora, lora_rank=args.lora_rank, lora_checkpoint_dir=args.lora_checkpoint_dir,
                            lora_layer_idxs=lora_layer_idxs if lora_layer_idxs else None,
                            lora_modality_names=lora_modality_names if lora_modality_names else None,
@@ -382,8 +400,8 @@ if __name__ == "__main__":
     if args.full_model_checkpointing:
         checkpointing = {"enable_checkpointing": args.full_model_checkpointing,
                          "callbacks": [ModelCheckpoint(monitor="val_loss", dirpath=args.full_model_checkpoint_dir,
-                                                        filename="imagebind-{epoch:02d}-{val_loss:.2f}",
-                                                        save_last=True, mode="min")]}
+                                                       filename="imagebind-{epoch:02d}-{val_loss:.2f}",
+                                                       save_last=True, mode="min")]}
     else:
         checkpointing = {"enable_checkpointing": args.full_model_checkpointing,}
 
