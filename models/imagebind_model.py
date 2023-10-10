@@ -234,7 +234,7 @@ class ImageBindModel(nn.Module):
         imu_stem = PatchEmbedGeneric(
             [
                 nn.Linear(
-                    in_features=48,
+                    in_features=24,
                     out_features=imu_embed_dim,
                     bias=False,
                 ),
@@ -243,9 +243,9 @@ class ImageBindModel(nn.Module):
         )
 
         imu_preprocessor = IMUPreprocessor(
-            img_size=[6, 2000],
+            img_size=[2, 3000],
             num_cls_tokens=1,
-            kernel_size=8,
+            kernel_size=12,
             embed_dim=imu_embed_dim,
             pos_embed_fn=partial(SpatioTemporalPosEmbeddingHelper, learnable=True),
             imu_stem=imu_stem,

@@ -609,7 +609,7 @@ class IMUPreprocessor(VerboseNNModule):
         kernel_size: int,
         imu_stem: PatchEmbedGeneric,
         embed_dim: int,
-        img_size: Tuple = (6, 2000),
+        img_size: Tuple = (2, 3000),
         num_cls_tokens: int = 1,
         pos_embed_fn: Optional[Callable] = None,
         init_param_style: str = "openclip",

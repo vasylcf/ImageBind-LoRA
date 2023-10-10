@@ -1,6 +1,6 @@
 import torch
-import pandas as pd
 import numpy as np
+import pickle
 
 from torchvision import transforms
 from torchvision.transforms._transforms_video import NormalizeVideo, CenterCropVideo
@@ -38,7 +38,7 @@ def load_and_transform_video_data(
     clips_per_video=7,
     frames_per_clip=1,
     crop_size=224,
-    center_crop=True,
+    center_crop=False,
     spatial_crop=False
 ):
 
@@ -103,40 +103,54 @@ def load_and_transform_video_data(
     return video_tensor
 
 
+def normalize_kpts(points, shelter_ids=[5, 6]):
+    origins = points[:, shelter_ids, :].mean(axis=1, keepdims=True)
+    norm_m = points - origins
+    d = np.linalg.norm(norm_m[:, 5, :], axis=1, keepdims=True)
+    norm_m = norm_m / np.expand_dims(d, axis=-1)
+    norm_m = np.dot(norm_m, np.array([[1, 0], [0, -1]])) 
+    return norm_m
+
+
 def load_imu(imu_path, device):
-    imu_tensor = torch.load(imu_path)
-    if isinstance(imu_tensor, np.ndarray):
-        imu_tensor = torch.from_numpy(imu_tensor)
+    kpt_ids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    brows_ids = [40, 42, 44, 45, 47, 49]
+    chin_ids = [23, 25, 27, 29, 31, 33, 35, 37, 39]
+    mouth_ids = [71, 74, 77, 80]
+    vis_points = kpt_ids + brows_ids + chin_ids + mouth_ids
+
+    with open(imu_path, 'rb') as f:
+        kpts_data = pickle.load(f)
+
+    chunk_points = [i['kpts'] for i in kpts_data]
+    m = np.array([i[vis_points]for i in chunk_points])
+    norm_m = normalize_kpts(m, shelter_ids=[5, 6])
+    imu_tensor = torch.from_numpy(norm_m)
+    imu_tensor = imu_tensor.permute(2, 1, 0)
+    imu_tensor = imu_tensor.reshape(imu_tensor.size(0), -1)
     return imu_tensor.to(device)
 
 
 class AvatarDataset(Dataset):
-    def __init__(self, root_dir: str, csv_path: str = None,
+    def __init__(self, root_dir: str,
                  transform: Optional[Callable] = None,
-                 split: str = 'train', train_size: float = 0.95, random_seed: int = 42, device: str = 'cpu'):
+                 split: str = 'train', train_size: float = 0.9, random_seed: int = 42, device: str = 'cpu'):
         self.root_dir = root_dir
-        # self.ds = pd.read_csv(csv_path)
-        # print(f'avatar csv shape: {self.ds.shape}')
         self.transform = transform
         self.device = device
 
-        # self.classes = self.ds.sentence.unique()
         self.classes = [d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))]
         print(f'classes: {len(self.classes)}')
         self.class_to_idx = {cls: idx for idx, cls in enumerate(self.classes)}
 
         self.paths = []
-        # for cls, cls_df in self.ds.groupby('sentence'):
-        #     for _i, r in cls_df.iterrows():
-        #         self.paths.append((os.path.join(root_dir, r['clip']),
-        #                            os.path.join(root_dir, r['telemetry'])))
 
         for cls in self.classes:
-            cls_dir = os.path.join(root_dir, cls, 'clips')
+            cls_dir = os.path.join(root_dir, cls, 'video')
             for filename in os.listdir(cls_dir):
                 if filename.endswith('.mp4'):
                     self.paths.append((os.path.join(cls_dir, filename),
-                                       os.path.join(cls_dir.replace('clips', 'telemetry'), filename.replace('mp4', 'pt'))))
+                                       os.path.join(cls_dir.replace('video', 'kpts'), filename.replace('mp4', 'pickle'))))
 
         # Split dataset
         train_paths, test_paths = train_test_split(self.paths, train_size=train_size, random_state=random_seed)
