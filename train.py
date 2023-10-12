@@ -244,7 +244,7 @@ def parse_args():
     return parser.parse_args()
 
 
-# python train.py --batch_size 4 --max_epochs 10  --lora --lora_modality_names vision imu --datasets avatar --device cuda:0 --loggers tensorboard --num_workers 8
+# python train.py --batch_size 8 --max_epochs 50  --lora --lora_modality_names vision imu --datasets avatar --device cuda:0 --full_model_checkpointing --loggers tensorboard --num_workers 12
 
 if __name__ == "__main__":
     args = parse_args()
@@ -330,10 +330,10 @@ if __name__ == "__main__":
     elif "avatar" in args.datasets:
         from datasets.avatar import AvatarDataset
         train_datasets.append(AvatarDataset(
-            root_dir=os.path.join(args.datasets_dir, "avatar"), csv_path='avatar_tune_ds.csv', split="train",
+            root_dir=os.path.join(args.datasets_dir, "avatar"), split="train",
             transform=None))
         test_datasets.append(AvatarDataset(
-            root_dir=os.path.join(args.datasets_dir, "avatar"), csv_path='avatar_tune_ds.csv', split="test",
+            root_dir=os.path.join(args.datasets_dir, "avatar"),  split="test",
             transform=None))
 
     if len(args.datasets) == 1:

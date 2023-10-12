@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 import pickle
+from datetime import timedelta
+import pandas as pd
 
 from torchvision import transforms
 from torchvision.transforms._transforms_video import NormalizeVideo, CenterCropVideo
@@ -38,7 +40,7 @@ def load_and_transform_video_data(
     clips_per_video=7,
     frames_per_clip=1,
     crop_size=224,
-    center_crop=False,
+    center_crop=True,
     spatial_crop=False
 ):
 
@@ -112,6 +114,23 @@ def normalize_kpts(points, shelter_ids=[5, 6]):
     return norm_m
 
 
+def interpolate_kpts(m):
+    new_shape  = (m.shape[0]*2, m.shape[1], m.shape[2])
+    df = pd.DataFrame(m.reshape(m.shape[0], -1))
+    df['dt'] = df.index
+    df['sec'] = pd.to_datetime(df['dt'], unit='s')
+
+    inerp_df = df.groupby(pd.Grouper(key='sec', freq='500ms')).max()
+    empty_row = {k: np.nan for k in df.columns}
+    _ind = df.iloc[-1,-1] + timedelta(milliseconds=500)
+    inerp_df.loc[_ind] = empty_row
+    inerp_df = inerp_df.reset_index(drop=True)
+    inerp_df = inerp_df.drop(columns='dt')
+    inerp_df = inerp_df.interpolate()
+
+    return inerp_df.values.reshape(new_shape)
+
+
 def load_imu(imu_path, device):
     kpt_ids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     brows_ids = [40, 42, 44, 45, 47, 49]
@@ -124,11 +143,31 @@ def load_imu(imu_path, device):
 
     chunk_points = [i['kpts'] for i in kpts_data]
     m = np.array([i[vis_points]for i in chunk_points])
+    m = interpolate_kpts(m)
     norm_m = normalize_kpts(m, shelter_ids=[5, 6])
     imu_tensor = torch.from_numpy(norm_m)
     imu_tensor = imu_tensor.permute(2, 1, 0)
-    imu_tensor = imu_tensor.reshape(imu_tensor.size(0), -1)
+    imu_tensor = imu_tensor.reshape(6, 2000)
+    imu_tensor = imu_tensor.to(dtype=torch.float32)
     return imu_tensor.to(device)
+
+
+def load_kpts(imu_path, interpolate=True):
+    kpt_ids = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    brows_ids = [40, 42, 44, 45, 47, 49]
+    chin_ids = [23, 25, 27, 29, 31, 33, 35, 37, 39]
+    mouth_ids = [71, 74, 77, 80]
+    vis_points = kpt_ids + brows_ids + chin_ids + mouth_ids
+
+    with open(imu_path, 'rb') as f:
+        kpts_data = pickle.load(f)
+
+    chunk_points = [i['kpts'] for i in kpts_data]
+    m = np.array([i[vis_points]for i in chunk_points])
+    if interpolate:
+        m = interpolate_kpts(m)
+    norm_m = normalize_kpts(m, shelter_ids=[5, 6])
+    return norm_m
 
 
 class AvatarDataset(Dataset):

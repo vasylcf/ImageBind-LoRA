@@ -39,7 +39,7 @@ if __name__ == '__main__':
         shuffle=False,
         drop_last=False,
         pin_memory=False,
-        num_workers=8,
+        num_workers=12,
     )
 
     # Instantiate model
@@ -51,13 +51,13 @@ if __name__ == '__main__':
 
     # Load LoRA params if found
     LoRA.load_lora_modality_trunks(model.modality_trunks,
-                                checkpoint_dir=".checkpoints/lora/10_epochs_avatar", postfix="_last")
+                                checkpoint_dir=".checkpoints/lora/10_ted", postfix="_last")
 
     # Load postprocessors & heads
     load_module(model.modality_postprocessors, module_name="postprocessors",
-                checkpoint_dir=".checkpoints/lora/10_epochs_avatar", postfix="_last")
+                checkpoint_dir=".checkpoints/lora/10_ted", postfix="_last")
     load_module(model.modality_heads, module_name="heads",
-                checkpoint_dir=".checkpoints/lora/10_epochs_avatar", postfix="_last")
+                checkpoint_dir=".checkpoints/lora/10_ted", postfix="_last")
 
     model.eval()
     model.to(device)
@@ -81,7 +81,7 @@ if __name__ == '__main__':
             video_embs.append(embeddings[ModalityType.VISION].cpu().numpy())
             imu_embs.append(embeddings[ModalityType.IMU].cpu().numpy())
         
-        with open(f'{phase}_embs.pickle', 'wb') as f:
+        with open(f'ted_{phase}_embs.pickle', 'wb') as f:
             pickle.dump({'video_embs': video_embs, 'imu_embs': imu_embs, 'files': dss[phase].paths}, f)
         
         

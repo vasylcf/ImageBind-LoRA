@@ -7,4 +7,9 @@ avatar_assets
 .logs
 *.csv
 *.pickle
+*.zip
+*.json
 projector.py
+TED_chunks_DS
+TED_clips_DS
+original_imgbind
